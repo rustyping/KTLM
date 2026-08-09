@@ -2,50 +2,71 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KTLM Web POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KTLM Kitchen - Web POS</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { display: flex; height: 100vh; background: #f4f6f9; color: #333; }
-    
-    /* Layout Utama */
-    .catalog-section { flex: 2; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
-    .cart-section { flex: 1; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; padding: 15px; }
-    
-    /* Filter & Search */
-    .search-box { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
-    .category-bar { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-    .cat-btn { padding: 8px 15px; border: none; background: #e0e0e0; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
-    .cat-btn.active { background: #2e7d32; color: #fff; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #f8f9fa; color: #212529; padding-bottom: 90px; }
 
-    /* Pilihan Customer */
-    .customer-box { margin-bottom: 12px; }
-    .customer-box label { font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
-    .customer-select { width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+    /* Header */
+    .app-header { background: #2e7d32; color: #fff; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .app-header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
 
-    /* Grid Katalog Produk */
-    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-    .product-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
-    .product-card:hover { border-color: #2e7d32; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .product-img { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; background: #eee; margin-bottom: 8px; }
-    .product-name { font-size: 13px; font-weight: bold; margin-bottom: 5px; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
-    .product-price { font-size: 14px; color: #2e7d32; font-weight: bold; }
+    .main-container { padding: 12px; max-width: 600px; margin: 0 auto; }
 
-    /* Keranjang */
-    .cart-title { font-size: 18px; font-weight: bold; border-bottom: 2px solid #2e7d32; padding-bottom: 8px; margin-bottom: 10px; }
-    .cart-items { flex: 1; overflow-y: auto; margin-bottom: 10px; }
-    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
-    .cart-item-info { flex: 1; }
-    .cart-item-qty { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-    .btn-qty { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    /* Search Box */
+    .search-box { width: 100%; padding: 12px 15px; font-size: 15px; border: 1px solid #ced4da; border-radius: 10px; margin-bottom: 12px; outline: none; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .search-box:focus { border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46,125,50,0.15); }
 
-    /* Ringkasan & Pembayaran */
-    .summary-box { border-top: 2px solid #eee; padding-top: 10px; }
-    .summary-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
-    .btn-pay { width: 100%; padding: 12px; background: #2e7d32; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
-    .btn-pay:hover { background: #1b5e20; }
+    /* Category Bar */
+    .category-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
+    .category-bar::-webkit-scrollbar { display: none; }
+    .cat-btn { padding: 8px 16px; border: 1px solid #dee2e6; background: #fff; border-radius: 20px; font-size: 13px; font-weight: 600; color: #495057; white-space: nowrap; cursor: pointer; }
+    .cat-btn.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
-    /* Modal Struk Print Thermal */
+    /* Grid Produk Mobile (2 Kolom) */
+    .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .product-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .product-card:active { transform: scale(0.98); }
+    .product-img { width: 100%; height: 100px; object-fit: cover; border-radius: 6px; background: #e9ecef; margin-bottom: 8px; }
+    .product-title { font-size: 13px; font-weight: 600; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; min-height: 32px; }
+    .product-price { font-size: 14px; font-weight: 700; color: #2e7d32; }
+    .badge-qty { position: absolute; top: 6px; right: 6px; background: #d32f2f; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+
+    /* Floating Bottom Bar */
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 10px rgba(0,0,0,0.08); z-index: 90; }
+    .bottom-bar-info { display: flex; flex-direction: column; }
+    .bottom-bar-items { font-size: 12px; color: #6c757d; font-weight: 500; }
+    .bottom-bar-total { font-size: 18px; font-weight: 800; color: #2e7d32; }
+    .btn-checkout { background: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-checkout:disabled { background: #adb5bd; cursor: not-allowed; }
+
+    /* Modal Screen Konfirmasi Pesanan */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; justify-content: flex-end; flex-direction: column; }
+    .modal-content { background: #fff; border-radius: 16px 16px 0 0; max-height: 85vh; display: flex; flex-direction: column; animation: slideUp 0.25s ease-out; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .modal-header { padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .btn-close { border: none; background: transparent; font-size: 20px; cursor: pointer; color: #6c757d; padding: 0 8px; }
+
+    .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: #495057; margin-bottom: 6px; }
+    .form-select { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; }
+
+    /* Modal Cart Items List */
+    .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }
+    .cart-item-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .cart-item-price { font-size: 12px; color: #6c757d; }
+    .qty-controls { display: flex; align-items: center; gap: 8px; }
+    .btn-qty-mini { width: 28px; height: 28px; border: 1px solid #ced4da; background: #fff; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    .modal-footer { padding: 16px; border-top: 1px solid #eee; background: #f8f9fa; }
+    .summary-line { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+    .btn-confirm-pay { width: 100%; padding: 14px; background: #2e7d32; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
+
+    /* Print Thermal Layout */
     @media print {
       body * { visibility: hidden; }
       #receipt-print, #receipt-print * { visibility: visible; }
@@ -56,46 +77,78 @@
 </head>
 <body>
 
-  <!-- Bagian Katalog Produk -->
-  <div class="catalog-section">
-    <input type="text" id="searchInput" class="search-box" placeholder="Cari nama produk..." oninput="filterProducts()">
+  <!-- Header Web -->
+  <header class="app-header">
+    <h1>KTLM Kitchen</h1>
+  </header>
+
+  <!-- Konten Utama -->
+  <div class="main-container">
+    
+    <!-- Cari Nama Barang -->
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari produk..." oninput="filterProducts()">
+
+    <!-- Kategori -->
     <div class="category-bar" id="categoryBar">
       <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
     </div>
-    <div class="grid-container" id="productGrid">
-      <p>Memuat data dari Google Sheets...</p>
+
+    <!-- Daftar Produk -->
+    <div class="product-grid" id="productGrid">
+      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat produk...</p>
     </div>
+
   </div>
 
-  <!-- Bagian Keranjang Kasir -->
-  <div class="cart-section">
-    <div class="cart-title">Tiket Pesanan</div>
-    
-    <!-- Pilihan Customer -->
-    <div class="customer-box">
-      <label for="customerSelect">Pelanggan / Customer:</label>
-      <select id="customerSelect" class="customer-select">
-        <option value="Umum">Umum / Walk-in</option>
-      </select>
+  <!-- Floating Bar Bawah (Bar Total & Lanjutkan Pesanan) -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-info">
+      <span class="bottom-bar-items" id="barItemCount">0 Item</span>
+      <span class="bottom-bar-total" id="barTotalAmount">Rp0</span>
     </div>
+    <button class="btn-checkout" id="btnOpenCheckout" onclick="openCheckoutModal()" disabled>
+      Lanjutkan Pesanan →
+    </button>
+  </div>
 
-    <div class="cart-items" id="cartList">
-      <p style="text-align:center; color:#888; margin-top:20px;">Keranjang kosong</p>
-    </div>
-    <div class="summary-box">
-      <div class="summary-row">
-        <span>Total:</span>
-        <span id="totalAmount">Rp0</span>
+  <!-- Screen Modal Konfirmasi Pesanan -->
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">Konfirmasi Pesanan</span>
+        <button class="btn-close" onclick="closeCheckoutModal()">&times;</button>
       </div>
-      <button class="btn-pay" onclick="processPayment()">BAYAR</button>
+      
+      <div class="modal-body">
+        <!-- Pilih Customer -->
+        <div class="form-group">
+          <label for="customerSelect">PELANGGAN / CUSTOMER</label>
+          <select id="customerSelect" class="form-select">
+            <option value="Umum">Umum / Walk-in</option>
+          </select>
+        </div>
+
+        <!-- Detail Rincian Item -->
+        <div class="form-group">
+          <label>DETAIL PESANAN</label>
+          <div id="modalCartList"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="summary-line">
+          <span>TOTAL:</span>
+          <span id="modalTotalAmount">Rp0</span>
+        </div>
+        <button class="btn-confirm-pay" onclick="processPayment()">BAYAR & PRINT STRUK</button>
+      </div>
     </div>
   </div>
 
-  <!-- Struk Tersembunyi (Khusus Cetak Thermal) -->
+  <!-- Struk Tersembunyi untuk Print Thermal -->
   <div id="receipt-print"></div>
 
   <script>
-    // URL Deployment Web App Apps Script Anda
     const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
 
     let storeConfig = {};
@@ -104,29 +157,26 @@
     let cart = [];
     let selectedCategory = "ALL";
 
-    // Mengambil Data Awal dari Google Sheets via API
     async function loadData() {
       try {
         const res = await fetch(API_URL);
         const data = await res.json();
-        storeConfig = data.store;
-        allProducts = data.products;
+        storeConfig = data.store || {};
+        allProducts = data.products || [];
         allCustomers = data.customers || [];
 
         renderCategories();
         renderProducts(allProducts);
         renderCustomers();
       } catch (err) {
-        alert("Gagal memuat data dari Google Sheets! Pastikan koneksi internet stabil.");
+        alert("Gagal memuat data dari server. Periksa koneksi Anda.");
       }
     }
 
     function renderCustomers() {
       const custSelect = document.getElementById("customerSelect");
       if (allCustomers.length > 0) {
-        custSelect.innerHTML = allCustomers.map(c => 
-          `<option value="${c.nama}">${c.nama}</option>`
-        ).join('');
+        custSelect.innerHTML = allCustomers.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
       } else {
         custSelect.innerHTML = `<option value="Umum">Umum / Walk-in</option>`;
       }
@@ -143,16 +193,25 @@
     function renderProducts(products) {
       const grid = document.getElementById("productGrid");
       if (products.length === 0) {
-        grid.innerHTML = "<p>Produk tidak ditemukan</p>";
+        grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Produk tidak ditemukan</p>';
         return;
       }
-      grid.innerHTML = products.map(p => `
-        <div class="product-card" onclick="addToCart('${p.id}')">
-          <img src="${p.gambar || 'https://via.placeholder.com/100?text=KTLM'}" class="product-img" alt="${p.nama}">
-          <div class="product-name">${p.nama}</div>
-          <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
-        </div>
-      `).join('');
+      
+      grid.innerHTML = products.map(p => {
+        const cartItem = cart.find(c => c.product.id === p.id);
+        const qtyBadge = cartItem ? `<div class="badge-qty">${cartItem.qty}</div>` : '';
+        
+        return `
+          <div class="product-card" onclick="addToCart('${p.id}')">
+            ${qtyBadge}
+            <img src="${p.gambar || 'https://via.placeholder.com/150?text=KTLM'}" class="product-img" alt="${p.nama}">
+            <div>
+              <div class="product-title">${p.nama}</div>
+              <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function filterCategory(cat, btn) {
@@ -180,7 +239,8 @@
       } else {
         cart.push({ product: product, qty: 1 });
       }
-      renderCart();
+      updateCartUI();
+      filterProducts(); // Refresh badge angka pada kartu produk
     }
 
     function updateQty(id, delta) {
@@ -189,42 +249,56 @@
         cart[index].qty += delta;
         if (cart[index].qty <= 0) cart.splice(index, 1);
       }
-      renderCart();
+      updateCartUI();
+      renderModalCartList();
+      filterProducts();
+      
+      if (cart.length === 0) {
+        closeCheckoutModal();
+      }
     }
 
-    function renderCart() {
-      const container = document.getElementById("cartList");
-      if (cart.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">Keranjang kosong</p>';
-        document.getElementById("totalAmount").innerText = "Rp0";
-        return;
-      }
+    function updateCartUI() {
+      const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
 
-      let total = 0;
-      container.innerHTML = cart.map(item => {
-        const itemTotal = item.product.harga * item.qty;
-        total += itemTotal;
-        return `
-          <div class="cart-item">
-            <div class="cart-item-info">
-              <div><strong>${item.product.nama}</strong></div>
-              <div style="font-size:12px; color:#666;">Rp${item.product.harga.toLocaleString('id-ID')}</div>
-              <div class="cart-item-qty">
-                <button class="btn-qty" onclick="updateQty('${item.product.id}', -1)">-</button>
-                <span>${item.qty}</span>
-                <button class="btn-qty" onclick="updateQty('${item.product.id}', 1)">+</button>
-              </div>
-            </div>
-            <div style="font-weight:bold;">Rp${itemTotal.toLocaleString('id-ID')}</div>
+      document.getElementById("barItemCount").innerText = `${totalQty} Item`;
+      document.getElementById("barTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
+      document.getElementById("modalTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
+
+      const btnCheckout = document.getElementById("btnOpenCheckout");
+      btnCheckout.disabled = cart.length === 0;
+    }
+
+    function openCheckoutModal() {
+      if (cart.length === 0) return;
+      renderModalCartList();
+      document.getElementById("checkoutModal").style.display = "flex";
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById("checkoutModal").style.display = "none";
+    }
+
+    function renderModalCartList() {
+      const container = document.getElementById("modalCartList");
+      container.innerHTML = cart.map(item => `
+        <div class="cart-item-row">
+          <div>
+            <div class="cart-item-name">${item.product.nama}</div>
+            <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty}</div>
           </div>
-        `;
-      }).join('');
-
-      document.getElementById("totalAmount").innerText = `Rp${total.toLocaleString('id-ID')}`;
+          <div class="qty-controls">
+            <button class="btn-qty-mini" onclick="updateQty('${item.product.id}', -1)">-</button>
+            <span style="font-size:13px; font-weight:bold;">${item.qty}</span>
+            <button class="btn-qty-mini" onclick="updateQty('${item.product.id}', 1)">+</button>
+          </div>
+        </div>
+      `).join('');
     }
 
     async function processPayment() {
-      if (cart.length === 0) return alert("Keranjang masih kosong!");
+      if (cart.length === 0) return;
 
       const now = new Date();
       const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
@@ -247,10 +321,8 @@
         kembalian: 0
       };
 
-      // Tampilkan dialog cetak struk
       printReceipt(payload);
 
-      // Kirim transaksi ke Google Sheets
       try {
         await fetch(API_URL, {
           method: "POST",
@@ -258,7 +330,9 @@
         });
         alert("Transaksi Berhasil Disimpan!");
         cart = [];
-        renderCart();
+        updateCartUI();
+        closeCheckoutModal();
+        filterProducts();
       } catch (err) {
         alert("Selesai diprint, tetapi gagal menyimpan ke Google Sheets.");
       }
@@ -297,7 +371,6 @@
       receipt.style.display = "none";
     }
 
-    // Jalankan aplikasi saat halaman dimuat
     loadData();
   </script>
 </body>

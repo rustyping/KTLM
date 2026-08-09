@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KTLM Web POS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { display: flex; height: 100vh; background: #f4f6f9; color: #333; }
+    
+    /* Layout Utama */
+    .catalog-section { flex: 2; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
+    .cart-section { flex: 1; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; padding: 15px; }
+    
+    /* Filter & Search */
+    .search-box { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    .category-bar { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+    .cat-btn { padding: 8px 15px; border: none; background: #e0e0e0; border-radius: 20px; cursor: pointer; white-space: nowrap; font-weight: bold; }
+    .cat-btn.active { background: #2e7d32; color: #fff; }
+
+    /* Pilihan Customer */
+    .customer-box { margin-bottom: 12px; }
+    .customer-box label { font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
+    .customer-select { width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+
+    /* Grid Katalog Produk */
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+    .product-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
+    .product-card:hover { border-color: #2e7d32; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .product-img { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; background: #eee; margin-bottom: 8px; }
+    .product-name { font-size: 13px; font-weight: bold; margin-bottom: 5px; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .product-price { font-size: 14px; color: #2e7d32; font-weight: bold; }
+
+    /* Keranjang */
+    .cart-title { font-size: 18px; font-weight: bold; border-bottom: 2px solid #2e7d32; padding-bottom: 8px; margin-bottom: 10px; }
+    .cart-items { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .cart-item-info { flex: 1; }
+    .cart-item-qty { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .btn-qty { width: 24px; height: 24px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+    /* Ringkasan & Pembayaran */
+    .summary-box { border-top: 2px solid #eee; padding-top: 10px; }
+    .summary-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+    .btn-pay { width: 100%; padding: 12px; background: #2e7d32; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .btn-pay:hover { background: #1b5e20; }
+
+    /* Modal Struk Print Thermal */
+    @media print {
+      body * { visibility: hidden; }
+      #receipt-print, #receipt-print * { visibility: visible; }
+      #receipt-print { position: absolute; left: 0; top: 0; width: 58mm; padding: 5px; font-size: 10px; font-family: monospace; }
+    }
+    #receipt-print { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Bagian Katalog Produk -->
+  <div class="catalog-section">
+    <input type="text" id="searchInput" class="search-box" placeholder="Cari nama produk..." oninput="filterProducts()">
+    <div class="category-bar" id="categoryBar">
+      <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
+    </div>
+    <div class="grid-container" id="productGrid">
+      <p>Memuat data dari Google Sheets...</p>
+    </div>
+  </div>
+
+  <!-- Bagian Keranjang Kasir -->
+  <div class="cart-section">
+    <div class="cart-title">Tiket Pesanan</div>
+    
+    <!-- Pilihan Customer -->
+    <div class="customer-box">
+      <label for="customerSelect">Pelanggan / Customer:</label>
+      <select id="customerSelect" class="customer-select">
+        <option value="Umum">Umum / Walk-in</option>
+      </select>
+    </div>
+
+    <div class="cart-items" id="cartList">
+      <p style="text-align:center; color:#888; margin-top:20px;">Keranjang kosong</p>
+    </div>
+    <div class="summary-box">
+      <div class="summary-row">
+        <span>Total:</span>
+        <span id="totalAmount">Rp0</span>
+      </div>
+      <button class="btn-pay" onclick="processPayment()">BAYAR</button>
+    </div>
+  </div>
+
+  <!-- Struk Tersembunyi (Khusus Cetak Thermal) -->
+  <div id="receipt-print"></div>
+
+  <script>
+    // URL Deployment Web App Apps Script Anda
+    const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
+
+    let storeConfig = {};
+    let allProducts = [];
+    let allCustomers = [];
+    let cart = [];
+    let selectedCategory = "ALL";
+
+    // Mengambil Data Awal dari Google Sheets via API
+    async function loadData() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        storeConfig = data.store;
+        allProducts = data.products;
+        allCustomers = data.customers || [];
+
+        renderCategories();
+        renderProducts(allProducts);
+        renderCustomers();
+      } catch (err) {
+        alert("Gagal memuat data dari Google Sheets! Pastikan koneksi internet stabil.");
+      }
+    }
+
+    function renderCustomers() {
+      const custSelect = document.getElementById("customerSelect");
+      if (allCustomers.length > 0) {
+        custSelect.innerHTML = allCustomers.map(c => 
+          `<option value="${c.nama}">${c.nama}</option>`
+        ).join('');
+      } else {
+        custSelect.innerHTML = `<option value="Umum">Umum / Walk-in</option>`;
+      }
+    }
+
+    function renderCategories() {
+      const categories = ["ALL", ...new Set(allProducts.map(p => p.kategori).filter(Boolean))];
+      const catBar = document.getElementById("categoryBar");
+      catBar.innerHTML = categories.map(cat => 
+        `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
+      ).join('');
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById("productGrid");
+      if (products.length === 0) {
+        grid.innerHTML = "<p>Produk tidak ditemukan</p>";
+        return;
+      }
+      grid.innerHTML = products.map(p => `
+        <div class="product-card" onclick="addToCart('${p.id}')">
+          <img src="${p.gambar || 'https://via.placeholder.com/100?text=KTLM'}" class="product-img" alt="${p.nama}">
+          <div class="product-name">${p.nama}</div>
+          <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
+        </div>
+      `).join('');
+    }
+
+    function filterCategory(cat, btn) {
+      selectedCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterProducts();
+    }
+
+    function filterProducts() {
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+      let filtered = allProducts.filter(p => {
+        const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
+        const matchSearch = p.nama.toLowerCase().includes(keyword);
+        return matchCat && matchSearch;
+      });
+      renderProducts(filtered);
+    }
+
+    function addToCart(id) {
+      const product = allProducts.find(p => p.id === id);
+      const existing = cart.find(item => item.product.id === id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ product: product, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function updateQty(id, delta) {
+      const index = cart.findIndex(item => item.product.id === id);
+      if (index !== -1) {
+        cart[index].qty += delta;
+        if (cart[index].qty <= 0) cart.splice(index, 1);
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById("cartList");
+      if (cart.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#888; margin-top:20px;">Keranjang kosong</p>';
+        document.getElementById("totalAmount").innerText = "Rp0";
+        return;
+      }
+
+      let total = 0;
+      container.innerHTML = cart.map(item => {
+        const itemTotal = item.product.harga * item.qty;
+        total += itemTotal;
+        return `
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <div><strong>${item.product.nama}</strong></div>
+              <div style="font-size:12px; color:#666;">Rp${item.product.harga.toLocaleString('id-ID')}</div>
+              <div class="cart-item-qty">
+                <button class="btn-qty" onclick="updateQty('${item.product.id}', -1)">-</button>
+                <span>${item.qty}</span>
+                <button class="btn-qty" onclick="updateQty('${item.product.id}', 1)">+</button>
+              </div>
+            </div>
+            <div style="font-weight:bold;">Rp${itemTotal.toLocaleString('id-ID')}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById("totalAmount").innerText = `Rp${total.toLocaleString('id-ID')}`;
+    }
+
+    async function processPayment() {
+      if (cart.length === 0) return alert("Keranjang masih kosong!");
+
+      const now = new Date();
+      const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
+      const waktuTx = now.toLocaleString('id-ID');
+      const selectedCustomer = document.getElementById("customerSelect").value;
+      
+      const totalBelanja = cart.reduce((sum, i) => sum + (i.product.harga * i.qty), 0);
+      const totalHpp = cart.reduce((sum, i) => sum + (i.product.hpp * i.qty), 0);
+      const detailText = cart.map(i => `${i.product.nama} (${i.qty}x)`).join(", ");
+
+      const payload = {
+        noInvoice: invoiceNo,
+        waktu: waktuTx,
+        customerName: selectedCustomer,
+        detailItems: detailText,
+        totalBelanja: totalBelanja,
+        totalHpp: totalHpp,
+        jenisPembayaran: "Tunai",
+        uangDiterima: totalBelanja,
+        kembalian: 0
+      };
+
+      // Tampilkan dialog cetak struk
+      printReceipt(payload);
+
+      // Kirim transaksi ke Google Sheets
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        alert("Transaksi Berhasil Disimpan!");
+        cart = [];
+        renderCart();
+      } catch (err) {
+        alert("Selesai diprint, tetapi gagal menyimpan ke Google Sheets.");
+      }
+    }
+
+    function printReceipt(tx) {
+      const receipt = document.getElementById("receipt-print");
+      receipt.style.display = "block";
+      receipt.innerHTML = `
+        <div style="text-align:center; font-weight:bold;">${storeConfig.Header || 'KTLM Kitchen'}</div>
+        <div style="text-align:center;">${storeConfig.Alamat || ''}</div>
+        <div style="text-align:center;">WA: ${storeConfig.WA || ''}</div>
+        ----------------------------------<br>
+        No: ${tx.noInvoice}<br>
+        Tgl: ${tx.waktu}<br>
+        Cust: ${tx.customerName}<br>
+        ----------------------------------<br>
+        ${cart.map(i => `
+          <div>${i.product.nama}</div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')}</span>
+            <span>Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}</span>
+          </div>
+        `).join('')}
+        ----------------------------------<br>
+        <div style="display:flex; justify-content:space-between; font-weight:bold;">
+          <span>TOTAL:</span>
+          <span>Rp${tx.totalBelanja.toLocaleString('id-ID')}</span>
+        </div>
+        ----------------------------------<br>
+        <div style="text-align:center; margin-top:8px;">${storeConfig["Bottom 1"] || ''}</div>
+        <div style="text-align:center;">${storeConfig["Bottom 2"] || ''}</div>
+        <div style="text-align:center;">${storeConfig["Bottom 3"] || ''}</div>
+      `;
+      window.print();
+      receipt.style.display = "none";
+    }
+
+    // Jalankan aplikasi saat halaman dimuat
+    loadData();
+  </script>
+</body>
+</html>

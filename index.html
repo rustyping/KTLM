@@ -500,7 +500,7 @@
         receiptText += `--------------------------------\n`;
         receiptText += `${storeConfig["Bottom 1"] || 'Terima Kasih!'}\n\n\n`;
 
-        const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.is210.rawbt;end;";
+        const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
         window.location.href = intentUrl;
       } else {
         // Print Browser Standard (window.print)

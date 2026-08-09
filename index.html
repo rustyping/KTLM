@@ -43,7 +43,7 @@
 
     /* Modal Screen Konfirmasi Pesanan */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; justify-content: flex-end; flex-direction: column; }
-    .modal-content { background: #fff; border-radius: 16px 16px 0 0; max-height: 85vh; display: flex; flex-direction: column; animation: slideUp 0.25s ease-out; }
+    .modal-content { background: #fff; border-radius: 16px 16px 0 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideUp 0.25s ease-out; }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     .modal-header { padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
@@ -51,12 +51,18 @@
     .btn-close { border: none; background: transparent; font-size: 20px; cursor: pointer; color: #6c757d; padding: 0 8px; }
 
     .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-    .form-group { margin-bottom: 15px; }
+    .form-group { margin-bottom: 14px; }
     .form-group label { display: block; font-size: 12px; font-weight: 700; color: #495057; margin-bottom: 6px; }
-    .form-select { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; }
+    .form-select, .form-input, .form-textarea { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; outline: none; }
+    .form-textarea { resize: none; height: 65px; }
+
+    /* Quick Note Chips */
+    .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .chip-btn { background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #495057; cursor: pointer; }
+    .chip-btn:active { background: #e2e6ea; }
 
     /* Modal Cart Items List */
-    .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }
+    .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f3f5; }
     .cart-item-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
     .cart-item-price { font-size: 12px; color: #6c757d; }
     .qty-controls { display: flex; align-items: center; gap: 8px; }
@@ -128,9 +134,35 @@
           </select>
         </div>
 
+        <!-- Metode Pembayaran -->
+        <div class="form-group">
+          <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
+          <select id="paymentMethodSelect" class="form-select">
+            <option value="Tunai">Tunai</option>
+            <option value="QRIS">QRIS</option>
+            <option value="Transfer">Transfer Bank</option>
+          </select>
+        </div>
+
+        <!-- Catatan Pesanan / Note -->
+        <div class="form-group">
+          <label for="orderNote">CATATAN KHUSUS / NOTE</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa bawang, dll..."></textarea>
+          
+          <!-- Quick Note Chips -->
+          <div class="quick-chips">
+            <button class="chip-btn" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
+            <button class="chip-btn" onclick="addQuickNote('Makan di Tempat')">+ Dine-In</button>
+            <button class="chip-btn" onclick="addQuickNote('Pedas')">+ Pedas</button>
+            <button class="chip-btn" onclick="addQuickNote('Sedang')">+ Pedas Sedang</button>
+            <button class="chip-btn" onclick="addQuickNote('Tanpa Bawang')">+ Tanpa Bawang</button>
+            <button class="chip-btn" onclick="addQuickNote('Es Sedikit')">+ Es Sedikit</button>
+          </div>
+        </div>
+
         <!-- Detail Rincian Item -->
         <div class="form-group">
-          <label>DETAIL PESANAN</label>
+          <label>RINCIAN ITEMS</label>
           <div id="modalCartList"></div>
         </div>
       </div>
@@ -240,7 +272,7 @@
         cart.push({ product: product, qty: 1 });
       }
       updateCartUI();
-      filterProducts(); // Refresh badge angka pada kartu produk
+      filterProducts();
     }
 
     function updateQty(id, delta) {
@@ -297,6 +329,16 @@
       `).join('');
     }
 
+    // Fungsi menambah teks Catatan via Chip
+    function addQuickNote(text) {
+      const noteInput = document.getElementById("orderNote");
+      if (noteInput.value.trim() === "") {
+        noteInput.value = text;
+      } else {
+        noteInput.value += ", " + text;
+      }
+    }
+
     async function processPayment() {
       if (cart.length === 0) return;
 
@@ -304,10 +346,17 @@
       const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
       const waktuTx = now.toLocaleString('id-ID');
       const selectedCustomer = document.getElementById("customerSelect").value;
+      const selectedPayment = document.getElementById("paymentMethodSelect").value;
+      const noteValue = document.getElementById("orderNote").value.trim();
       
       const totalBelanja = cart.reduce((sum, i) => sum + (i.product.harga * i.qty), 0);
       const totalHpp = cart.reduce((sum, i) => sum + (i.product.hpp * i.qty), 0);
-      const detailText = cart.map(i => `${i.product.nama} (${i.qty}x)`).join(", ");
+      
+      // Gabungkan rincian item dengan catatan jika ada
+      let detailText = cart.map(i => `${i.product.nama} (${i.qty}x)`).join(", ");
+      if (noteValue) {
+        detailText += ` | Catatan: ${noteValue}`;
+      }
 
       const payload = {
         noInvoice: invoiceNo,
@@ -316,12 +365,12 @@
         detailItems: detailText,
         totalBelanja: totalBelanja,
         totalHpp: totalHpp,
-        jenisPembayaran: "Tunai",
+        jenisPembayaran: selectedPayment,
         uangDiterima: totalBelanja,
         kembalian: 0
       };
 
-      printReceipt(payload);
+      printReceipt(payload, noteValue);
 
       try {
         await fetch(API_URL, {
@@ -330,6 +379,7 @@
         });
         alert("Transaksi Berhasil Disimpan!");
         cart = [];
+        document.getElementById("orderNote").value = ""; // Reset Catatan
         updateCartUI();
         closeCheckoutModal();
         filterProducts();
@@ -338,7 +388,7 @@
       }
     }
 
-    function printReceipt(tx) {
+    function printReceipt(tx, note) {
       const receipt = document.getElementById("receipt-print");
       receipt.style.display = "block";
       receipt.innerHTML = `
@@ -349,6 +399,7 @@
         No: ${tx.noInvoice}<br>
         Tgl: ${tx.waktu}<br>
         Cust: ${tx.customerName}<br>
+        Bayar: ${tx.jenisPembayaran}<br>
         ----------------------------------<br>
         ${cart.map(i => `
           <div>${i.product.nama}</div>
@@ -358,6 +409,7 @@
           </div>
         `).join('')}
         ----------------------------------<br>
+        ${note ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${note}</div>----------------------------------<br>` : ''}
         <div style="display:flex; justify-content:space-between; font-weight:bold;">
           <span>TOTAL:</span>
           <span>Rp${tx.totalBelanja.toLocaleString('id-ID')}</span>

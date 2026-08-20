@@ -350,6 +350,20 @@
       ).join('');
     }
 
+    // Fungsi pembantu untuk mengonversi link Google Drive ke Direct Image URL
+    function fixImageUrl(url) {
+      if (!url || typeof url !== 'string' || url.trim() === '') return DEFAULT_PLACEHOLDER;
+      
+      // Deteksi jika link berasal dari Google Drive
+      if (url.includes('drive.google.com')) {
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          return `https://lh3.googleusercontent.com/d/${match[1]}`;
+        }
+      }
+      return url;
+    }
+    
     function renderProducts(products) {
       const grid = document.getElementById("productGrid");
       if (products.length === 0) {
@@ -361,18 +375,19 @@
         const totalQtyInCart = cart
           .filter(c => c.product.id === p.id)
           .reduce((sum, i) => sum + i.qty, 0);
-
+    
         const subCategories = getSubCategoriesForProduct(p);
         const hasSub = subCategories.length > 0;
-        const imgUrl = p.gambar || DEFAULT_PLACEHOLDER;
+        
+        // Otomatis perbaiki URL gambar di sini
+        const imgUrl = fixImageUrl(p.gambar);
         const isSelected = totalQtyInCart > 0;
-
-        // MODE 1: TAMPIL DENGAN GAMBAR
+    
         if (posSettings.showImages) {
           return `
             <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
               <div class="product-img-wrapper">
-                <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'">
+                <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
                 
                 ${isSelected ? `
                   <div class="qty-badge-overlay" onclick="event.stopPropagation()">
@@ -382,7 +397,7 @@
                            onfocus="this.select()">
                   </div>
                 ` : ''}
-
+    
                 ${hasSub ? `<span class="variant-tag">+ Variasi</span>` : ''}
               </div>
               
@@ -392,10 +407,7 @@
               </div>
             </div>
           `;
-        } 
-        
-        // MODE 2: TAMPIL COMPACT / RINGKAS (TANPA GAMBAR)
-        else {
+        } else {
           return `
             <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
               <div class="compact-details">

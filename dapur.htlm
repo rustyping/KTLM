@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Dapur - Antrean Pesanan</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #1e1e2f;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        /* Container Grid untuk Kartu Pesanan */
+        .order-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        /* Card Pesanan */
+        .card {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-left: 6px solid #ff9f43; /* Warna indikator status */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Header Kartu */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .table-no {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ff9f43;
+        }
+
+        .time {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        /* Daftar Item Makanan */
+        .item-list {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+
+        .item-list li {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .item-qty {
+            font-weight: bold;
+            background: #00d2d3;
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 5px;
+        }
+
+        .item-note {
+            display: block;
+            font-size: 0.85rem;
+            color: #ff6b6b;
+            font-style: italic;
+            margin-left: 35px;
+        }
+
+        /* Tombol Aksi */
+        .btn-done {
+            width: 100%;
+            padding: 12px;
+            background-color: #10ac84;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-done:hover {
+            background-color: #0e906f;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Dapur - Antrean Pesanan</h1>
+        <div id="clock">Status: Online</div>
+    </header>
+
+    <div class="order-grid">
+
+        <!-- KARTU PESANAN 1 -->
+        <div class="card">
+            <div>
+                <div class="card-header">
+                    <span class="table-no">Meja #04</span>
+                    <span class="time">10 menit lalu</span>
+                </div>
+                <ul class="item-list">
+                    <li>
+                        <span class="item-qty">2x</span> Nasi Goreng Spesial
+                        <span class="item-note">* Pedas sedang, tanpa timun</span>
+                    </li>
+                    <li>
+                        <span class="item-qty">1x</span> Es Teh Manis
+                    </li>
+                </ul>
+            </div>
+            <button class="btn-done" onclick="this.parentElement.style.display='none'">
+                ✓ Selesai Dimasak
+            </button>
+        </div>
+
+        <!-- KARTU PESANAN 2 -->
+        <div class="card">
+            <div>
+                <div class="card-header">
+                    <span class="table-no">Meja #12</span>
+                    <span class="time">2 menit lalu</span>
+                </div>
+                <ul class="item-list">
+                    <li>
+                        <span class="item-qty">1x</span> Mie Goreng Ayam
+                        <span class="item-note">* Ekstra telor ceplok</span>
+                    </li>
+                </ul>
+            </div>
+            <button class="btn-done" onclick="this.parentElement.style.display='none'">
+                ✓ Selesai Dimasak
+            </button>
+        </div>
+
+    </div>
+
+</body>
+</html>

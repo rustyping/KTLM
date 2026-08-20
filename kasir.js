@@ -721,20 +721,17 @@ function printReceipt(tx, note) {
 
 function printStrukRawBT(teksStruk) {
   try {
-    // 1. Tambahkan perintah ESC/POS (Initialize + Teks Struk + Line Feed/Potong Kertas)
-    const ESC_INIT = "\x1B\x40"; // Reset/Inisialisasi printer thermal
-    const FEED_PAPER = "\n\n\n\n"; // Wajib ada enter di akhir agar cetakan keluar dari cetakan printer
+    // 1. Perintah ESC/POS (Inisialisasi + Teks + Potong/Feed Kertas)
+    const ESC_INIT = "\x1B\x40"; 
+    const FEED_PAPER = "\n\n\n\n"; 
     
     const fullContent = ESC_INIT + teksStruk + FEED_PAPER;
 
-    // 2. Encode teks ke Base64 (Aman untuk karakter UTF-8 / Bahasa Indonesia)
+    // 2. Encode teks ke Base64 (Aman untuk karakter UTF-8)
     const base64Data = btoa(unescape(encodeURIComponent(fullContent)));
 
-    // 3. Format Intent khusus RawBT Android
-    const rawbtIntent = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a404.rawbtprinter;end;`;
-
-    // 4. Kirim ke aplikasi RawBT
-    window.location.href = rawbtIntent;
+    // 3. Panggil skema khusus RawBT secara langsung
+    window.location.href = `rawbt:base64,${base64Data}`;
 
   } catch (err) {
     alert("Gagal memproses cetak: " + err.message);

@@ -3,77 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KTLM Kitchen - Web POS</title>
+  <title>KTLM Kitchen - POS Dapur</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: #f8f9fa; color: #212529; padding-bottom: 90px; }
+    body { background-color: #f4f6f8; color: #212529; padding-bottom: 95px; -webkit-tap-highlight-color: transparent; }
 
-    /* Header */
-    .app-header { background: #2e7d32; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .app-header h1 { font-size: 18px; font-weight: 700; }
-    .btn-settings { background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 18px; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    /* Header POS */
+    .app-header { background: #1b5e20; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .app-header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+    .btn-settings { background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 18px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
 
     .main-container { padding: 12px; max-width: 600px; margin: 0 auto; }
 
-    /* Search Box */
-    .search-box { width: 100%; padding: 12px 15px; font-size: 15px; border: 1px solid #ced4da; border-radius: 10px; margin-bottom: 12px; outline: none; background: #fff; }
+    /* Search Bar */
+    .search-box { width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #ced4da; border-radius: 10px; margin-bottom: 12px; outline: none; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .search-box:focus { border-color: #2e7d32; }
 
-    /* Category Bar */
+    /* Category Bar (Tabs) */
     .category-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
     .category-bar::-webkit-scrollbar { display: none; }
-    .cat-btn { padding: 8px 16px; border: 1px solid #dee2e6; background: #fff; border-radius: 20px; font-size: 13px; font-weight: 600; color: #495057; white-space: nowrap; cursor: pointer; }
-    .cat-btn.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+    .cat-btn { padding: 8px 16px; border: 1px solid #dee2e6; background: #fff; border-radius: 20px; font-size: 13px; font-weight: 600; color: #495057; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
+    .cat-btn.active { background: #2e7d32; color: #fff; border-color: #2e7d32; box-shadow: 0 2px 6px rgba(46,125,50,0.3); }
 
-    /* Grid Produk Mobile (Tanpa Gambar - Kompak) */
-    .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .product-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.03); cursor: pointer; position: relative; min-height: 75px; }
-    .product-info { flex: 1; padding-right: 8px; }
-    .product-title { font-size: 14px; font-weight: 700; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; color: #212529; }
-    .product-price { font-size: 13px; font-weight: 700; color: #2e7d32; }
-    .has-sub-badge { display: inline-block; font-size: 10px; background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-top: 2px; }
+    /* Product Grid Layout (Gaya POS Dapur / Moka / Loyverse) */
+    .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 480px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
 
-    /* Bubble Input Jumlah (Pojok Kanan Bawah) */
-    .qty-bubble-container { display: flex; align-items: center; justify-content: center; }
-    .qty-input-bubble { width: 44px; height: 44px; border: 2px solid #c8e6c9; border-radius: 12px; text-align: center; font-size: 16px; font-weight: 800; color: #2e7d32; background: #f1f8e9; outline: none; transition: all 0.2s; }
-    .qty-input-bubble:focus { border-color: #2e7d32; background: #fff; box-shadow: 0 0 0 3px rgba(46,125,50,0.2); }
-    .qty-input-bubble.has-val { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+    .product-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; position: relative; transition: all 0.15s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
+    .product-card:active { transform: scale(0.97); }
+    .product-card.has-selected { border: 2px solid #2e7d32; box-shadow: 0 3px 10px rgba(46,125,50,0.2); }
 
-    /* Floating Bottom Bar */
-    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 10px rgba(0,0,0,0.08); z-index: 90; }
+    /* Product Image Wrapper & Overlays */
+    .product-img-wrapper { width: 100%; height: 115px; background: #eee; position: relative; overflow: hidden; }
+    .product-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    
+    /* Overlay Angka Jumlah Saat Di-pilih */
+    .qty-badge-overlay { position: absolute; top: 6px; right: 6px; background: rgba(46,125,50,0.92); backdrop-filter: blur(4px); border-radius: 10px; padding: 2px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 2; }
+    .qty-input-overlay { width: 36px; height: 32px; border: none; background: transparent; text-align: center; font-size: 16px; font-weight: 800; color: #fff; outline: none; }
+
+    /* Badge Tag Variasi/Subkategori */
+    .variant-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; backdrop-filter: blur(2px); }
+
+    /* Detail Text Produk */
+    .product-details { padding: 10px; display: flex; flex-direction: column; justify-content: space-between; flex: 1; }
+    .product-title { font-size: 13px; font-weight: 700; color: #212529; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; min-height: 32px; line-height: 1.25; }
+    .product-price { font-size: 13px; font-weight: 800; color: #2e7d32; }
+
+    /* Floating Bar Bawah (Kasir Bottom Bar) */
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 90; }
     .bottom-bar-info { display: flex; flex-direction: column; }
-    .bottom-bar-items { font-size: 12px; color: #6c757d; font-weight: 500; }
+    .bottom-bar-items { font-size: 12px; color: #6c757d; font-weight: 600; }
     .bottom-bar-total { font-size: 18px; font-weight: 800; color: #2e7d32; }
-    .btn-checkout { background: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
-    .btn-checkout:disabled { background: #adb5bd; cursor: not-allowed; }
+    .btn-checkout { background: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 8px rgba(46,125,50,0.3); }
+    .btn-checkout:disabled { background: #adb5bd; cursor: not-allowed; box-shadow: none; }
 
-    /* Modal Standard */
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; justify-content: flex-end; flex-direction: column; }
-    .modal-content { background: #fff; border-radius: 16px 16px 0 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideUp 0.2s ease-out; }
+    /* Modal Overlay & Styling */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 200; display: none; justify-content: flex-end; flex-direction: column; }
+    .modal-content { background: #fff; border-radius: 18px 18px 0 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideUp 0.2s ease-out; }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
     .modal-header { padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     .modal-title { font-size: 16px; font-weight: 700; }
-    .btn-close { border: none; background: transparent; font-size: 20px; cursor: pointer; color: #6c757d; padding: 0 8px; }
+    .btn-close { border: none; background: transparent; font-size: 22px; cursor: pointer; color: #6c757d; padding: 0 8px; }
 
     .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
     .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 700; color: #495057; margin-bottom: 6px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: #6c757d; margin-bottom: 6px; letter-spacing: 0.5px; }
     .form-select, .form-input, .form-textarea { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; outline: none; }
     .form-textarea { resize: none; height: 60px; }
 
-    /* Quick Note Chips / Option Chips */
-    .option-group { margin-bottom: 12px; }
+    /* Option Chips untuk Subkategori */
+    .option-group { margin-bottom: 14px; }
     .option-label { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 6px; }
     .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
     .chip-option { background: #f1f3f5; border: 1px solid #ced4da; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #495057; cursor: pointer; }
     .chip-option.selected { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
-    /* Quick Note Chips */
     .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
     .chip-btn { background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #495057; cursor: pointer; }
 
-    /* Cart Items Row */
+    /* Cart Row */
     .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }
     .cart-item-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
     .cart-item-sub { font-size: 11px; color: #2e7d32; font-weight: 600; margin-bottom: 2px; }
@@ -83,7 +92,7 @@
 
     .modal-footer { padding: 16px; border-top: 1px solid #eee; background: #f8f9fa; }
     .summary-line { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
-    .btn-confirm-pay { width: 100%; padding: 14px; background: #2e7d32; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    .btn-confirm-pay { width: 100%; padding: 14px; background: #2e7d32; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
 
     /* Print Thermal Layout */
     @media print {
@@ -96,27 +105,27 @@
 </head>
 <body>
 
-  <!-- Header Web -->
+  <!-- Header -->
   <header class="app-header">
     <h1>KTLM Kitchen</h1>
     <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
   </header>
 
-  <!-- Konten Utama -->
+  <!-- Container Utama -->
   <div class="main-container">
-    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari produk..." oninput="filterProducts()">
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu..." oninput="filterProducts()">
 
     <div class="category-bar" id="categoryBar">
       <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
     </div>
 
-    <!-- Grid Produk Kompak (Tanpa Gambar) -->
+    <!-- Grid Produk (Gambar + Badge Angka) -->
     <div class="product-grid" id="productGrid">
-      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat produk...</p>
+      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
     </div>
   </div>
 
-  <!-- Floating Bar Bawah -->
+  <!-- Bottom Action Bar -->
   <div class="bottom-bar">
     <div class="bottom-bar-info">
       <span class="bottom-bar-items" id="barItemCount">0 Item</span>
@@ -135,7 +144,7 @@
         <button class="btn-close" onclick="closeSubModal()">&times;</button>
       </div>
       <div class="modal-body" id="subModalBody">
-        <!-- Pilihan subkategori dinamis dirender di sini -->
+        <!-- Pilihan variasi dinamis dirender di sini -->
       </div>
       <div class="modal-footer">
         <button class="btn-confirm-pay" onclick="confirmSubCategorySelection()">+ TAMBAHKAN KE PESANAN</button>
@@ -143,7 +152,7 @@
     </div>
   </div>
 
-  <!-- Modal Konfirmasi Pesanan -->
+  <!-- Modal Checkout / Konfirmasi -->
   <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -170,20 +179,19 @@
 
         <div class="form-group">
           <label for="orderNote">CATATAN KHUSUS / NOTE</label>
-          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa bawang..."></textarea>
+          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
           
           <div class="quick-chips">
             <button class="chip-btn" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
             <button class="chip-btn" onclick="addQuickNote('Makan di Tempat')">+ Dine-In</button>
             <button class="chip-btn" onclick="addQuickNote('Pedas')">+ Pedas</button>
             <button class="chip-btn" onclick="addQuickNote('Sedang')">+ Pedas Sedang</button>
-            <button class="chip-btn" onclick="addQuickNote('Tanpa Bawang')">+ Tanpa Bawang</button>
-            <button class="chip-btn" onclick="addQuickNote('Es Sedikit')">+ Es Sedikit</button>
+            <button class="chip-btn" onclick="addQuickNote('Tanpa Cuka')">+ Tanpa Cuka</button>
           </div>
         </div>
 
         <div class="form-group">
-          <label>RINCIAN ITEMS</label>
+          <label>RINCIAN PESANAN</label>
           <div id="modalCartList"></div>
         </div>
       </div>
@@ -198,11 +206,11 @@
     </div>
   </div>
 
-  <!-- Modal Pengaturan Printer & Toko -->
+  <!-- Modal Pengaturan -->
   <div class="modal-overlay" id="settingsModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title">⚙️ Pengaturan Printer & POS</span>
+        <span class="modal-title">⚙️ Pengaturan POS & Printer</span>
         <button class="btn-close" onclick="closeSettingsModal()">&times;</button>
       </div>
 
@@ -249,6 +257,7 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
+    const DEFAULT_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f3f5'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%23adb5bd'>KTLM</text></svg>";
 
     let storeConfig = {};
     let allProducts = [];
@@ -291,7 +300,7 @@
         renderProducts(allProducts);
         renderCustomers();
       } catch (err) {
-        alert("Gagal memuat data dari server. Periksa koneksi Anda.");
+        alert("Gagal memuat data dari server.");
       }
     }
 
@@ -315,47 +324,50 @@
     function renderProducts(products) {
       const grid = document.getElementById("productGrid");
       if (products.length === 0) {
-        grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Produk tidak ditemukan</p>';
+        grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Menu tidak ditemukan</p>';
         return;
       }
       
       grid.innerHTML = products.map(p => {
-        // Cek total qty item ini di keranjang
+        // Hitung total qty item ini di keranjang
         const totalQtyInCart = cart
           .filter(c => c.product.id === p.id)
           .reduce((sum, i) => sum + i.qty, 0);
 
-        // Cek apakah produk ini punya subkategori
-        const subs = getSubCategoriesForProduct(p);
-        const hasSub = subs.length > 0;
-        const subBadge = hasSub ? `<div class="has-sub-badge">+ Variasi</div>` : '';
-
-        const qtyValClass = totalQtyInCart > 0 ? 'has-val' : '';
+        const subCategories = getSubCategoriesForProduct(p);
+        const hasSub = subCategories.length > 0;
+        const imgUrl = p.gambar || DEFAULT_PLACEHOLDER;
+        const isSelected = totalQtyInCart > 0;
 
         return `
-          <div class="product-card" onclick="handleProductClick('${p.id}', event)">
-            <div class="product-info">
+          <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
+            <div class="product-img-wrapper">
+              <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'">
+              
+              <!-- Badge Overlay Angka Pilihan di Atas Gambar -->
+              ${isSelected ? `
+                <div class="qty-badge-overlay" onclick="event.stopPropagation()">
+                  <input type="number" min="0" class="qty-input-overlay" 
+                         value="${totalQtyInCart}" 
+                         onchange="onQtyDirectChange('${p.id}', this.value)"
+                         onfocus="this.select()">
+                </div>
+              ` : ''}
+
+              ${hasSub ? `<span class="variant-tag">+ Variasi</span>` : ''}
+            </div>
+            
+            <div class="product-details">
               <div class="product-title">${p.nama}</div>
               <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
-              ${subBadge}
-            </div>
-            <div class="qty-bubble-container">
-              <input type="number" min="0" class="qty-input-bubble ${qtyValClass}" 
-                     value="${totalQtyInCart || 0}" 
-                     onclick="event.stopPropagation()"
-                     onchange="onQtyDirectChange('${p.id}', this.value)"
-                     onfocus="this.select()">
             </div>
           </div>
         `;
       }).join('');
     }
 
-    // Mencari daftar subkategori untuk produk tertentu dari Sheet Subkategori
     function getSubCategoriesForProduct(product) {
       if (!allSubcategories || allSubcategories.length === 0) return [];
-      
-      // Filter berdasarkan id_produk atau nama_produk yang cocok
       return allSubcategories.filter(s => 
         (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
         (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
@@ -369,10 +381,8 @@
       const subCategories = getSubCategoriesForProduct(product);
 
       if (subCategories.length > 0) {
-        // Tampilkan Modal Pilihan Subkategori/Variasi
         openSubCategoryModal(product, subCategories);
       } else {
-        // Tambah +1 langsung untuk produk tanpa variasi
         addToCart(product, 1, "");
       }
     }
@@ -385,10 +395,8 @@
       const subCategories = getSubCategoriesForProduct(product);
 
       if (subCategories.length > 0) {
-        // Jika ber-subkategori, buka modal variasi
         openSubCategoryModal(product, subCategories);
       } else {
-        // Update langsung qty di keranjang
         updateDirectQty(productId, newQty);
       }
     }
@@ -403,12 +411,11 @@
       let html = '';
       subCategories.forEach((group, index) => {
         const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
-        // Pisahkan opsi berdasarkan koma, misal: "Goreng, Kukus, Frozen"
         let rawOptions = group.opsi || group.pilihan || "";
         let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
 
         if (optionsList.length > 0) {
-          selectedSubOptions[groupName] = optionsList[0]; // Set default ke pilihan pertama
+          selectedSubOptions[groupName] = optionsList[0];
 
           html += `
             <div class="option-group">
@@ -452,8 +459,6 @@
     function confirmSubCategorySelection() {
       if (!activeSubProduct) return;
       const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
-      
-      // Gabungkan opsi variasi yang dipilih (misal: "Goreng, Pedas")
       const subVariantText = Object.values(selectedSubOptions).join(', ');
 
       addToCart(activeSubProduct, qty, subVariantText);
@@ -461,7 +466,6 @@
     }
 
     function addToCart(product, qty, subVariant) {
-      // Unikkan item berdasarkan produk ID dan variasi subkategorinya
       const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
       if (existing) {
         existing.qty += qty;
@@ -473,7 +477,6 @@
     }
 
     function updateDirectQty(productId, newQty) {
-      // Hapus item dari cart jika 0, atau set qty
       const existingIndex = cart.findIndex(item => item.product.id === productId);
       if (newQty <= 0) {
         if (existingIndex !== -1) cart.splice(existingIndex, 1);

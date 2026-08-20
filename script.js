@@ -54,12 +54,14 @@ async function loadData() {
     renderProducts(allProducts);
     renderCustomers();
   } catch (err) {
+    console.error(err);
     alert("Gagal memuat data dari server.");
   }
 }
 
 function renderCustomers() {
   const custSelect = document.getElementById("customerSelect");
+  if (!custSelect) return;
   if (allCustomers.length > 0) {
     custSelect.innerHTML = allCustomers.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
   } else {
@@ -68,8 +70,9 @@ function renderCustomers() {
 }
 
 function renderCategories() {
-  const categories = ["ALL", ...new Set(allProducts.map(p => p.kategori).filter(Boolean))];
   const catBar = document.getElementById("categoryBar");
+  if (!catBar) return;
+  const categories = ["ALL", ...new Set(allProducts.map(p => p.kategori).filter(Boolean))];
   catBar.innerHTML = categories.map(cat => 
     `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
   ).join('');
@@ -77,6 +80,7 @@ function renderCategories() {
 
 function renderProducts(products) {
   const grid = document.getElementById("productGrid");
+  if (!grid) return;
   if (products.length === 0) {
     grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Menu tidak ditemukan</p>';
     return;
@@ -191,7 +195,6 @@ function openSubCategoryModal(product, subCategories) {
 
     const groupLower = groupName.toLowerCase();
     
-    // Deteksi Otomatis Jika Grup adalah Pilihan Paket Varian Isi (Mix & Match)
     const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
                            groupLower.includes('paket') || groupLower.includes('pilih') || 
                            group.tipe === 'counter';
@@ -222,7 +225,6 @@ function openSubCategoryModal(product, subCategories) {
           </div>
         `;
       } else {
-        // Pilihan Single
         selectedSubOptions[groupName] = optionsList[0];
 
         html += `
@@ -362,7 +364,9 @@ function filterCategory(cat, btn) {
 }
 
 function filterProducts() {
-  const keyword = document.getElementById("searchInput").value.toLowerCase();
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput) return;
+  const keyword = searchInput.value.toLowerCase();
   let filtered = allProducts.filter(p => {
     const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
     const matchSearch = p.nama.toLowerCase().includes(keyword);
@@ -375,14 +379,15 @@ function updateCartUI() {
   const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
 
-  document.getElementById("barItemCount").innerText = `${totalQty} Item`;
-  document.getElementById("barTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
-  document.getElementById("modalTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
-
+  const itemCountEl = document.getElementById("barItemCount");
+  const totalAmountEl = document.getElementById("barTotalAmount");
+  const modalTotalEl = document.getElementById("modalTotalAmount");
   const btnCheckout = document.getElementById("btnOpenCheckout");
-  if (btnCheckout) {
-    btnCheckout.disabled = cart.length === 0;
-  }
+
+  if (itemCountEl) itemCountEl.innerText = `${totalQty} Item`;
+  if (totalAmountEl) totalAmountEl.innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
+  if (modalTotalEl) modalTotalEl.innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
+  if (btnCheckout) btnCheckout.disabled = cart.length === 0;
 }
 
 function openCheckoutModal() {
@@ -396,42 +401,31 @@ function closeCheckoutModal() {
 }
 
 function renderModalCartList() {
-  const listContainer = document.getElementById("modalCartList");
-  if (!listContainer) return;
-  listContainer.innerHTML = cart.map((item, index) => `
+  const container = document.getElementById("modalCartList");
+  if (!container) return;
+  container.innerHTML = cart.map((item, idx) => `
     <div class="cart-item-row">
       <div>
         <div class="cart-item-name">${item.product.nama}</div>
-        ${item.subVariant ? `<div class="cart-item-sub">${item.subVariant}</div>` : ''}
-        <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty} = Rp${(item.product.harga * item.qty).toLocaleString('id-ID')}</div>
+        ${item.subVariant ? `<div class="cart-item-sub">[ ${item.subVariant} ]</div>` : ''}
+        <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty}</div>
       </div>
       <div class="qty-controls">
-        <button class="btn-qty-mini" onclick="updateQtyInCartList(${index}, -1)">-</button>
-        <span style="font-weight: bold; font-size: 13px;">${item.qty}</span>
-        <button class="btn-qty-mini" onclick="updateQtyInCartList(${index}, 1)">+</button>
+        <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
+        <span style="font-size:13px; font-weight:bold;">${item.qty}</span>
+        <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, 1)">+</button>
       </div>
     </div>
   `).join('');
-}
-
-function addQuickNote(text) {
-  const noteInput = document.getElementById("orderNote");
-  if (!noteInput) return;
-  if (noteInput.value.trim() === "") {
-    noteInput.value = text;
-  } else if (!noteInput.value.includes(text)) {
-    noteInput.value += ", " + text;
-  }
 }
 
 function openSettingsModal() {
   document.getElementById("settingShowImages").checked = posSettings.showImages;
   document.getElementById("settingPrintMode").value = posSettings.printMode;
   document.getElementById("settingPaperSize").value = posSettings.paperSize;
-  document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.nama_toko || 'KTLM Kitchen';
-  document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.alamat || '';
-  document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.whatsapp || '';
-
+  document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
+  document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.Alamat || '';
+  document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.WA || '';
   document.getElementById("settingsModal").style.display = "flex";
 }
 
@@ -450,76 +444,129 @@ function savePrinterSettings() {
   localStorage.setItem('ktlm_pos_settings', JSON.stringify(posSettings));
   document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
 
-  closeSettingsModal();
   filterProducts();
-  alert("Pengaturan berhasil disimpan!");
+  alert("Pengaturan tersimpan!");
+  closeSettingsModal();
+}
+
+function addQuickNote(text) {
+  const noteInput = document.getElementById("orderNote");
+  if (noteInput.value.trim() === "") {
+    noteInput.value = text;
+  } else {
+    noteInput.value += ", " + text;
+  }
 }
 
 async function processPayment() {
   if (cart.length === 0) return;
 
-  const customer = document.getElementById("customerSelect").value;
-  const paymentMethod = document.getElementById("paymentMethodSelect").value;
-  const note = document.getElementById("orderNote").value;
-  const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
+  const now = new Date();
+  const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
+  const waktuTx = now.toLocaleString('id-ID');
+  const selectedCustomer = document.getElementById("customerSelect").value;
+  const selectedPayment = document.getElementById("paymentMethodSelect").value;
+  const noteValue = document.getElementById("orderNote").value.trim();
+  
+  const totalBelanja = cart.reduce((sum, i) => sum + (i.product.harga * i.qty), 0);
+  const totalHpp = cart.reduce((sum, i) => sum + (i.product.hpp * i.qty), 0);
+  
+  let detailText = cart.map(i => {
+    let nameStr = i.product.nama;
+    if (i.subVariant) nameStr += ` (${i.subVariant})`;
+    return `${nameStr} (${i.qty}x)`;
+  }).join(", ");
 
-  const orderData = {
-    customer: customer,
-    paymentMethod: paymentMethod,
-    note: note,
-    totalAmount: totalPrice,
-    items: cart.map(item => ({
-      nama: item.product.nama,
-      harga: item.product.harga,
-      qty: item.qty,
-      subVariant: item.subVariant
-    }))
+  if (noteValue) {
+    detailText += ` | Catatan: ${noteValue}`;
+  }
+
+  const payload = {
+    noInvoice: invoiceNo,
+    waktu: waktuTx,
+    customerName: selectedCustomer,
+    detailItems: detailText,
+    totalBelanja: totalBelanja,
+    totalHpp: totalHpp,
+    jenisPembayaran: selectedPayment,
+    uangDiterima: totalBelanja,
+    kembalian: 0
   };
 
-  printReceipt(orderData);
+  printReceipt(payload, noteValue);
 
-  cart = [];
-  document.getElementById("orderNote").value = "";
-  updateCartUI();
-  filterProducts();
-  closeCheckoutModal();
-}
-
-function printReceipt(order) {
-  const storeName = posSettings.headerName || storeConfig.nama_toko || "KTLM Kitchen";
-  const storeAddr = posSettings.address || storeConfig.alamat || "Jl. Laks Martadinata 59D";
-  const storeWa = posSettings.waPhone || storeConfig.whatsapp || "085838976880";
-  const dateStr = new Date().toLocaleString('id-ID');
-
-  let receiptText = `${storeName}\n${storeAddr}\nTelp/WA: ${storeWa}\n--------------------------------\n`;
-  receiptText += `Tanggal : ${dateStr}\n`;
-  receiptText += `Pelanggan: ${order.customer}\n`;
-  receiptText += `Bayar    : ${order.paymentMethod}\n`;
-  if (order.note) receiptText += `Catatan  : ${order.note}\n`;
-  receiptText += `--------------------------------\n`;
-
-  order.items.forEach(item => {
-    receiptText += `${item.nama}\n`;
-    if (item.subVariant) receiptText += `  (${item.subVariant})\n`;
-    const subtotal = item.harga * item.qty;
-    receiptText += `  ${item.qty} x ${item.harga.toLocaleString('id-ID')} = ${subtotal.toLocaleString('id-ID')}\n`;
-  });
-
-  receiptText += `--------------------------------\n`;
-  receiptText += `TOTAL    : Rp${order.totalAmount.toLocaleString('id-ID')}\n`;
-  receiptText += `--------------------------------\n`;
-  receiptText += `  Terima Kasih Atas Kunjungan Anda\n\n\n`;
-
-  if (posSettings.printMode === 'rawbt') {
-    const rawbtUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.is_art.myprinter;end;";
-    window.location.href = rawbtUrl;
-  } else {
-    const printArea = document.getElementById("receipt-print");
-    printArea.innerHTML = `<pre>${receiptText}</pre>`;
-    window.print();
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    alert("Transaksi Berhasil Disimpan!");
+    cart = [];
+    document.getElementById("orderNote").value = "";
+    updateCartUI();
+    closeCheckoutModal();
+    filterProducts();
+  } catch (err) {
+    alert("Transaksi selesai di HP, gagal konek simpan ke Sheet.");
   }
 }
 
-window.onload = function() {
-  loadData();
-};
+function printReceipt(tx, note) {
+  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
+  const storeAddr = posSettings.address || storeConfig.Alamat || '';
+  const storeWa = posSettings.waPhone || storeConfig.WA || '';
+
+  if (posSettings.printMode === 'rawbt') {
+    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
+    receiptText += `--------------------------------\n`;
+    cart.forEach(i => {
+      let itemLabel = i.product.nama;
+      if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
+      receiptText += `${itemLabel}\n  ${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')} = Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}\n`;
+    });
+    receiptText += `--------------------------------\n`;
+    if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
+    receiptText += `TOTAL: Rp${tx.totalBelanja.toLocaleString('id-ID')}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${storeConfig["Bottom 1"] || 'Terima Kasih!'}\n\n\n`;
+
+    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+    window.location.href = intentUrl;
+  } else {
+    const receipt = document.getElementById("receipt-print");
+    if (!receipt) return;
+    receipt.style.display = "block";
+    receipt.innerHTML = `
+      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
+      <div style="text-align:center;">${storeAddr}</div>
+      <div style="text-align:center;">WA: ${storeWa}</div>
+      ----------------------------------<br>
+      No: ${tx.noInvoice}<br>
+      Tgl: ${tx.waktu}<br>
+      Cust: ${tx.customerName}<br>
+      Bayar: ${tx.jenisPembayaran}<br>
+      ----------------------------------<br>
+      ${cart.map(i => `
+        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')}</span>
+          <span>Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}</span>
+        </div>
+      `).join('')}
+      ----------------------------------<br>
+      ${note ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${note}</div>----------------------------------<br>` : ''}
+      <div style="display:flex; justify-content:space-between; font-weight:bold;">
+        <span>TOTAL:</span>
+        <span>Rp${tx.totalBelanja.toLocaleString('id-ID')}</span>
+      </div>
+      ----------------------------------<br>
+      <div style="text-align:center; margin-top:8px;">${storeConfig["Bottom 1"] || 'Terima Kasih'}</div>
+    `;
+    window.print();
+    receipt.style.display = "none";
+  }
+}
+
+loadData();

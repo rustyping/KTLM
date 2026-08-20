@@ -107,7 +107,7 @@ function renderProducts(products) {
           <div class="product-details">
             <div class="product-info-text">
               <div class="product-title">${p.nama}</div>
-              <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
+              <div class="product-price">Rp${(p.harga || 0).toLocaleString('id-ID')}</div>
             </div>
 
             ${isSelected ? `
@@ -126,7 +126,7 @@ function renderProducts(products) {
         <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
           <div class="compact-details">
             <div class="product-title">${p.nama}</div>
-            <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
+            <div class="product-price">Rp${(p.harga || 0).toLocaleString('id-ID')}</div>
             ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
           </div>
           
@@ -179,7 +179,6 @@ function onQtyDirectChange(productId, val) {
   }
 }
 
-/* Modal Subkategori & Mix-Match Counter */
 function openSubCategoryModal(product, subCategories) {
   activeSubProduct = product;
   selectedSubOptions = {};
@@ -194,7 +193,6 @@ function openSubCategoryModal(product, subCategories) {
     let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
 
     const groupLower = groupName.toLowerCase();
-    
     const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
                            groupLower.includes('paket') || groupLower.includes('pilih') || 
                            group.tipe === 'counter';
@@ -408,7 +406,7 @@ function renderModalCartList() {
       <div>
         <div class="cart-item-name">${item.product.nama}</div>
         ${item.subVariant ? `<div class="cart-item-sub">[ ${item.subVariant} ]</div>` : ''}
-        <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty}</div>
+        <div class="cart-item-price">Rp${(item.product.harga || 0).toLocaleString('id-ID')} x ${item.qty}</div>
       </div>
       <div class="qty-controls">
         <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
@@ -451,6 +449,7 @@ function savePrinterSettings() {
 
 function addQuickNote(text) {
   const noteInput = document.getElementById("orderNote");
+  if (!noteInput) return;
   if (noteInput.value.trim() === "") {
     noteInput.value = text;
   } else {
@@ -458,18 +457,25 @@ function addQuickNote(text) {
   }
 }
 
+/* PERBAIKAN UTAMA: PROSES PEMBAYARAN KE GOOGLE SHEETS */
 async function processPayment() {
   if (cart.length === 0) return;
+
+  const btnPay = document.querySelector("#checkoutModal .btn-confirm-pay");
+  if (btnPay) {
+    btnPay.disabled = true;
+    btnPay.innerText = "PROSES SIMPAN...";
+  }
 
   const now = new Date();
   const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
   const waktuTx = now.toLocaleString('id-ID');
-  const selectedCustomer = document.getElementById("customerSelect").value;
-  const selectedPayment = document.getElementById("paymentMethodSelect").value;
-  const noteValue = document.getElementById("orderNote").value.trim();
+  const selectedCustomer = document.getElementById("customerSelect")?.value || "Umum";
+  const selectedPayment = document.getElementById("paymentMethodSelect")?.value || "Tunai";
+  const noteValue = document.getElementById("orderNote")?.value.trim() || "";
   
-  const totalBelanja = cart.reduce((sum, i) => sum + (i.product.harga * i.qty), 0);
-  const totalHpp = cart.reduce((sum, i) => sum + (i.product.hpp * i.qty), 0);
+  const totalBelanja = cart.reduce((sum, i) => sum + ((i.product.harga || 0) * i.qty), 0);
+  const totalHpp = cart.reduce((sum, i) => sum + ((i.product.hpp || 0) * i.qty), 0);
   
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
@@ -493,21 +499,34 @@ async function processPayment() {
     kembalian: 0
   };
 
-  printReceipt(payload, noteValue);
-
   try {
+    // Mode no-cors wajib agar Google Apps Script tidak diblokir CORS oleh Browser
     await fetch(API_URL, {
       method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
       body: JSON.stringify(payload)
     });
+
+    // Panggil pencetakan SETELAH data terkirim
+    printReceipt(payload, noteValue);
+
     alert("Transaksi Berhasil Disimpan!");
     cart = [];
-    document.getElementById("orderNote").value = "";
+    if (document.getElementById("orderNote")) document.getElementById("orderNote").value = "";
     updateCartUI();
     closeCheckoutModal();
     filterProducts();
   } catch (err) {
-    alert("Transaksi selesai di HP, gagal konek simpan ke Sheet.");
+    console.error("Gagal simpan:", err);
+    alert("Koneksi gagal. Cek sambungan internet.");
+  } finally {
+    if (btnPay) {
+      btnPay.disabled = false;
+      btnPay.innerText = "BAYAR & PRINT STRUK";
+    }
   }
 }
 
@@ -515,6 +534,7 @@ function printReceipt(tx, note) {
   const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
   const storeAddr = posSettings.address || storeConfig.Alamat || '';
   const storeWa = posSettings.waPhone || storeConfig.WA || '';
+  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
 
   if (posSettings.printMode === 'rawbt') {
     let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
@@ -524,13 +544,13 @@ function printReceipt(tx, note) {
     cart.forEach(i => {
       let itemLabel = i.product.nama;
       if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
-      receiptText += `${itemLabel}\n  ${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')} = Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}\n`;
+      receiptText += `${itemLabel}\n  ${i.qty} x Rp${(i.product.harga || 0).toLocaleString('id-ID')} = Rp${(i.qty * (i.product.harga || 0)).toLocaleString('id-ID')}\n`;
     });
     receiptText += `--------------------------------\n`;
     if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
     receiptText += `TOTAL: Rp${tx.totalBelanja.toLocaleString('id-ID')}\n`;
     receiptText += `--------------------------------\n`;
-    receiptText += `${storeConfig["Bottom 1"] || 'Terima Kasih!'}\n\n\n`;
+    receiptText += `${storeBottom}\n\n\n`;
 
     const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
     window.location.href = intentUrl;
@@ -551,8 +571,8 @@ function printReceipt(tx, note) {
       ${cart.map(i => `
         <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
         <div style="display:flex; justify-content:space-between;">
-          <span>${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')}</span>
-          <span>Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}</span>
+          <span>${i.qty} x Rp${(i.product.harga || 0).toLocaleString('id-ID')}</span>
+          <span>Rp${(i.qty * (i.product.harga || 0)).toLocaleString('id-ID')}</span>
         </div>
       `).join('')}
       ----------------------------------<br>
@@ -562,7 +582,7 @@ function printReceipt(tx, note) {
         <span>Rp${tx.totalBelanja.toLocaleString('id-ID')}</span>
       </div>
       ----------------------------------<br>
-      <div style="text-align:center; margin-top:8px;">${storeConfig["Bottom 1"] || 'Terima Kasih'}</div>
+      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
     `;
     window.print();
     receipt.style.display = "none";

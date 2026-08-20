@@ -6,6 +6,7 @@ let allProducts = [];
 let allCustomers = [];
 let allSubcategories = [];
 let cart = [];
+let pendingOrdersArr = [];
 let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
@@ -457,7 +458,7 @@ function addQuickNote(text) {
   }
 }
 
-/* PERBAIKAN UTAMA: PROSES PEMBAYARAN KE GOOGLE SHEETS */
+/* PROSES PEMBAYARAN KASIR LANGSUNG */
 async function processPayment() {
   if (cart.length === 0) return;
 
@@ -496,21 +497,20 @@ async function processPayment() {
     totalHpp: totalHpp,
     jenisPembayaran: selectedPayment,
     uangDiterima: totalBelanja,
-    kembalian: 0
+    kembalian: 0,
+    kasir: "Kasir",
+    sumber: "Kasir",
+    status: "SELESAI"
   };
 
   try {
-    // Mode no-cors wajib agar Google Apps Script tidak diblokir CORS oleh Browser
     await fetch(API_URL, {
       method: "POST",
       mode: "no-cors",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
 
-    // Panggil pencetakan SETELAH data terkirim
     printReceipt(payload, noteValue);
 
     alert("Transaksi Berhasil Disimpan!");
@@ -527,6 +527,134 @@ async function processPayment() {
       btnPay.disabled = false;
       btnPay.innerText = "BAYAR & PRINT STRUK";
     }
+  }
+}
+
+/* FITUR BARU: MANAGEMENT PESANAN MASUK KATALOG */
+async function checkPendingOrders() {
+  try {
+    const res = await fetch(`${API_URL}?action=getPendingOrders`);
+    const data = await res.json();
+    pendingOrdersArr = data.orders || [];
+
+    const badge = document.getElementById("orderBadge");
+    if (badge) {
+      badge.innerText = pendingOrdersArr.length;
+      badge.style.display = pendingOrdersArr.length > 0 ? "inline-block" : "none";
+    }
+  } catch (err) {
+    console.error("Gagal cek pesanan:", err);
+  }
+}
+
+function openPendingOrdersModal() {
+  renderPendingOrders();
+  document.getElementById("pendingOrdersModal").style.display = "flex";
+}
+
+function closePendingOrdersModal() {
+  document.getElementById("pendingOrdersModal").style.display = "none";
+}
+
+function renderPendingOrders() {
+  const container = document.getElementById("pendingOrdersList");
+  if (!container) return;
+
+  if (pendingOrdersArr.length === 0) {
+    container.innerHTML = "<p style='text-align:center; color:#6c757d; padding:20px;'>Belum ada pesanan masuk dari katalog.</p>";
+    return;
+  }
+
+  container.innerHTML = pendingOrdersArr.map(order => `
+    <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <strong style="color:#1b5e20;">${order.noInvoice}</strong>
+        <span style="font-size:11px; color:#6c757d;">${order.waktu}</span>
+      </div>
+      <div style="font-size:13px; font-weight:bold; margin-bottom:4px;">Pelanggan: ${order.customerName}</div>
+      <div style="font-size:12px; color:#333; background:#fff; padding:8px; border-radius:6px; border:1px solid #eee; margin-bottom:8px;">
+        ${order.detailItems}
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:bold; margin-bottom:10px;">
+        <span>Total: Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}</span>
+        <span style="color:#2e7d32; font-size:11px; background:#e8f5e9; padding:2px 8px; border-radius:4px;">${order.jenisPembayaran}</span>
+      </div>
+      <button onclick="processAndPrintCatalogOrder(${order.rowNum})" class="btn-confirm-pay" style="padding:10px; font-size:13px;">
+        🖨️ PROSES & PRINT STRUK
+      </button>
+    </div>
+  `).join('');
+}
+
+async function processAndPrintCatalogOrder(rowNum) {
+  const order = pendingOrdersArr.find(o => o.rowNum === rowNum);
+  if (!order) return;
+
+  printReceiptFromCatalog(order);
+
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "updateStatus",
+        rowNum: order.rowNum
+      })
+    });
+
+    alert(`Pesanan ${order.noInvoice} berhasil diproses!`);
+    checkPendingOrders();
+    closePendingOrdersModal();
+  } catch (err) {
+    console.error("Gagal update status:", err);
+    alert("Gagal memperbarui status di Google Sheet.");
+  }
+}
+
+function printReceiptFromCatalog(order) {
+  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
+  const storeAddr = posSettings.address || storeConfig.Alamat || '';
+  const storeWa = posSettings.waPhone || storeConfig.WA || '';
+  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
+
+  if (posSettings.printMode === 'rawbt') {
+    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `No: ${order.noInvoice}\nTgl: ${order.waktu}\nCust: ${order.customerName}\nBayar: ${order.jenisPembayaran}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${order.detailItems.replace(/, /g, '\n')}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `TOTAL: Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${storeBottom}\n\n\n`;
+
+    window.location.href = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+  } else {
+    const receipt = document.getElementById("receipt-print");
+    if (!receipt) return;
+    receipt.style.display = "block";
+    receipt.innerHTML = `
+      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
+      <div style="text-align:center;">${storeAddr}</div>
+      <div style="text-align:center;">WA: ${storeWa}</div>
+      ----------------------------------<br>
+      No: ${order.noInvoice}<br>
+      Tgl: ${order.waktu}<br>
+      Cust: ${order.customerName}<br>
+      Bayar: ${order.jenisPembayaran}<br>
+      ----------------------------------<br>
+      <div>${order.detailItems.replace(/, /g, '<br>')}</div>
+      ----------------------------------<br>
+      <div style="display:flex; justify-content:space-between; font-weight:bold;">
+        <span>TOTAL:</span>
+        <span>Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}</span>
+      </div>
+      ----------------------------------<br>
+      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
+    `;
+    window.print();
+    receipt.style.display = "none";
   }
 }
 
@@ -590,3 +718,5 @@ function printReceipt(tx, note) {
 }
 
 loadData();
+setInterval(checkPendingOrders, 15000);
+checkPendingOrders();

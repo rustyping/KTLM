@@ -627,9 +627,10 @@ function printReceiptFromCatalog(order) {
     receiptText += `--------------------------------\n`;
     receiptText += `TOTAL: Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}\n`;
     receiptText += `--------------------------------\n`;
-    receiptText += `${storeBottom}\n\n\n`;
+    receiptText += `${storeBottom}\n`;
 
-    window.location.href = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+    // PANGGIL FUNGSI RAWBT DI SINI
+    printStrukRawBT(receiptText);
   } else {
     const receipt = document.getElementById("receipt-print");
     if (!receipt) return;
@@ -678,10 +679,10 @@ function printReceipt(tx, note) {
     if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
     receiptText += `TOTAL: Rp${tx.totalBelanja.toLocaleString('id-ID')}\n`;
     receiptText += `--------------------------------\n`;
-    receiptText += `${storeBottom}\n\n\n`;
+    receiptText += `${storeBottom}\n`;
 
-    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-    window.location.href = intentUrl;
+    // PANGGIL FUNGSI RAWBT DI SINI
+    printStrukRawBT(receiptText);
   } else {
     const receipt = document.getElementById("receipt-print");
     if (!receipt) return;
@@ -714,6 +715,29 @@ function printReceipt(tx, note) {
     `;
     window.print();
     receipt.style.display = "none";
+  }
+}
+
+
+function printStrukRawBT(teksStruk) {
+  try {
+    // 1. Tambahkan perintah ESC/POS (Initialize + Teks Struk + Line Feed/Potong Kertas)
+    const ESC_INIT = "\x1B\x40"; // Reset/Inisialisasi printer thermal
+    const FEED_PAPER = "\n\n\n\n"; // Wajib ada enter di akhir agar cetakan keluar dari cetakan printer
+    
+    const fullContent = ESC_INIT + teksStruk + FEED_PAPER;
+
+    // 2. Encode teks ke Base64 (Aman untuk karakter UTF-8 / Bahasa Indonesia)
+    const base64Data = btoa(unescape(encodeURIComponent(fullContent)));
+
+    // 3. Format Intent khusus RawBT Android
+    const rawbtIntent = `intent:base64,${base64Data}#Intent;scheme=rawbt;package=ru.a404.rawbtprinter;end;`;
+
+    // 4. Kirim ke aplikasi RawBT
+    window.location.href = rawbtIntent;
+
+  } catch (err) {
+    alert("Gagal memproses cetak: " + err.message);
   }
 }
 

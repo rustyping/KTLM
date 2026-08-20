@@ -68,6 +68,15 @@
       </div>
       
       <div class="modal-body">
+        <!-- 1. RINCIAN PESANAN (DITAMPILKAN PERTAMA) -->
+        <div class="form-group">
+          <label style="font-weight: bold; color: #2e7d32; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
+          <div id="modalCartList"></div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <!-- 2. PELANGGAN -->
         <div class="form-group">
           <label for="customerSelect">PELANGGAN / CUSTOMER</label>
           <select id="customerSelect" class="form-select">
@@ -75,6 +84,7 @@
           </select>
         </div>
 
+        <!-- 3. METODE PEMBAYARAN -->
         <div class="form-group">
           <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
           <select id="paymentMethodSelect" class="form-select">
@@ -84,6 +94,7 @@
           </select>
         </div>
 
+        <!-- 4. CATATAN KHUSUS -->
         <div class="form-group">
           <label for="orderNote">CATATAN KHUSUS / NOTE</label>
           <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
@@ -95,11 +106,6 @@
             <button class="chip-btn" onclick="addQuickNote('Sedang')">+ Pedas Sedang</button>
             <button class="chip-btn" onclick="addQuickNote('Tanpa Cuka')">+ Tanpa Cuka</button>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label>RINCIAN PESANAN</label>
-          <div id="modalCartList"></div>
         </div>
       </div>
 
@@ -113,6 +119,7 @@
     </div>
   </div>
 
+  
   <!-- Modal Pesanan Masuk (Katalog Online) -->
   <div class="modal-overlay" id="pendingOrdersModal">
     <div class="modal-content">

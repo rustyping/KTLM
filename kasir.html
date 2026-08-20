@@ -2,362 +2,700 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Kasir POS & Katalog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KTLM Kitchen - POS Dapur</title>
   <style>
-    :root {
-      --paper-width: 58mm;
-      --primary-color: #007bff;
-      --success-color: #28a745;
-      --bg-color: #f8f9fa;
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: #f4f6f8; color: #212529; padding-bottom: 95px; -webkit-tap-highlight-color: transparent; }
+
+    /* Header POS */
+    .app-header { background: #1b5e20; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .app-header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+    .btn-settings { background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 18px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+
+    .main-container { padding: 12px; max-width: 600px; margin: 0 auto; }
+
+    /* Search Bar */
+    .search-box { width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #ced4da; border-radius: 10px; margin-bottom: 12px; outline: none; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .search-box:focus { border-color: #2e7d32; }
+
+    /* Category Bar */
+    .category-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
+    .category-bar::-webkit-scrollbar { display: none; }
+    .cat-btn { padding: 8px 16px; border: 1px solid #dee2e6; background: #fff; border-radius: 20px; font-size: 13px; font-weight: 600; color: #495057; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
+    .cat-btn.active { background: #2e7d32; color: #fff; border-color: #2e7d32; box-shadow: 0 2px 6px rgba(46,125,50,0.3); }
+
+    /* Product Grid Layout */
+    .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 480px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .product-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; position: relative; transition: all 0.15s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
+    .product-card:active { transform: scale(0.97); }
+    .product-card.has-selected { border: 2px solid #1b5e20; box-shadow: 0 4px 12px rgba(27,94,32,0.2); }
+
+    /* Mode Tanpa Gambar (Compact View) */
+    .product-card.compact { padding: 12px; min-height: 80px; flex-direction: row; align-items: center; justify-content: space-between; }
+
+    /* Product Image Wrapper */
+    .product-img-wrapper { width: 100%; height: 115px; background: #eee; position: relative; overflow: hidden; }
+    .product-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Badge Tambah Variasi */
+    .variant-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; backdrop-filter: blur(2px); }
+    .variant-tag-inline { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
+
+    /* Detail Text & Badge Angka Sejajar di Bawah */
+    .product-details { padding: 10px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex: 1; background: #fff; }
+    .product-info-text { display: flex; flex-direction: column; justify-content: center; flex: 1; padding-right: 6px; }
+    .product-title { font-size: 13px; font-weight: 700; color: #212529; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 2px; line-height: 1.25; }
+    .product-price { font-size: 13px; font-weight: 800; color: #2e7d32; }
+
+    /* Badge Angka Jumlah di Kanan Bawah */
+    .qty-badge-inline { 
+      background: #1b5e20; 
+      border-radius: 8px; 
+      padding: 2px 4px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      flex-shrink: 0; 
+      box-shadow: 0 2px 5px rgba(27,94,32,0.3); 
+    }
+    .qty-input-inline { 
+      width: 32px; 
+      height: 28px; 
+      border: none; 
+      background: transparent; 
+      text-align: center; 
+      font-size: 14px; 
+      font-weight: 800; 
+      color: #ffffff; 
+      outline: none; 
     }
 
-    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
-    body { background-color: var(--bg-color); color: #333; display: flex; flex-direction: column; height: 100vh; }
+    /* Compact Layout Styling */
+    .compact-details { flex: 1; padding-right: 6px; }
 
-    /* Top Bar Header */
-    header {
-      background-color: #ffffff;
-      padding: 12px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      z-index: 10;
-    }
-    .store-info h2 { font-size: 18px; color: #111; }
-    .header-actions { display: flex; gap: 8px; }
+    /* Bottom Action Bar */
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 90; }
+    .bottom-bar-info { display: flex; flex-direction: column; }
+    .bottom-bar-items { font-size: 12px; color: #6c757d; font-weight: 600; }
+    .bottom-bar-total { font-size: 18px; font-weight: 800; color: #2e7d32; }
+    .btn-checkout { background: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 8px rgba(46,125,50,0.3); }
+    .btn-checkout:disabled { background: #adb5bd; cursor: not-allowed; box-shadow: none; }
 
-    /* Main Layout */
-    .pos-container { display: flex; flex: 1; overflow: hidden; }
-    .product-section { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-    .cart-section { width: 340px; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
+    /* Modal Overlay */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 200; display: none; justify-content: flex-end; flex-direction: column; }
+    .modal-content { background: #fff; border-radius: 18px 18px 0 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideUp 0.2s ease-out; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-    /* Search & Filter */
-    .filter-bar { display: flex; gap: 8px; }
-    .filter-bar input, .filter-bar select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-    .filter-bar input { flex: 1; }
+    .modal-header { padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .btn-close { border: none; background: transparent; font-size: 22px; cursor: pointer; color: #6c757d; padding: 0 8px; }
 
-    /* Product Grid */
-    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-    .product-card {
-      background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 10px; text-align: center;
-      cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; display: flex; flex-direction: column; justify-content: space-between;
-    }
-    .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-    .product-card img { width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 6px; }
-    .product-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
-    .product-price { font-size: 13px; font-weight: bold; color: var(--success-color); }
+    .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: #6c757d; margin-bottom: 6px; letter-spacing: 0.5px; }
+    .form-select, .form-input, .form-textarea { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; outline: none; }
+    .form-textarea { resize: none; height: 60px; }
 
-    /* Cart Sidebar */
-    .cart-header { padding: 14px; border-bottom: 1px solid #eee; font-size: 16px; font-weight: bold; }
-    .cart-items { flex: 1; overflow-y: auto; padding: 14px; }
-    .cart-footer { padding: 14px; border-top: 1px solid #eee; background: #fafafa; }
-    .cart-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-bottom: 12px; }
+    /* Toggle Switch */
+    .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: #2e7d32; }
+    input:checked + .slider:before { transform: translateX(20px); }
 
-    /* Buttons */
-    .btn { padding: 8px 14px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    .btn-primary { background: var(--primary-color); color: white; }
-    .btn-success { background: var(--success-color); color: white; width: 100%; padding: 12px; font-size: 15px; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-outline { background: transparent; border: 1px solid #ccc; color: #333; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    /* Group Subkategori & Mix-Match Counter */
+    .option-group { margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 10px; border: 1px solid #eee; }
+    .option-label { font-size: 12px; font-weight: 700; color: #1b5e20; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip-option { background: #fff; border: 1px solid #ced4da; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.15s ease; user-select: none; }
+    .chip-option:active { transform: scale(0.95); }
+    .chip-option.selected { background: #2e7d32; color: #fff; border-color: #2e7d32; box-shadow: 0 2px 6px rgba(46,125,50,0.3); }
 
-    /* Modal System */
-    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 100; }
-    .modal-content { background: white; border-radius: 8px; width: 90%; max-width: 450px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 85vh; display: flex; flex-direction: column; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 12px; }
-    .modal-body { overflow-y: auto; flex: 1; }
-    .close-btn { font-size: 20px; cursor: pointer; color: #888; }
-    
-    /* Cart Item Rows in Modal & List */
-    .cart-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #f0f0f0; }
-    .cart-item-name { font-size: 13px; font-weight: 600; }
-    .cart-item-sub { font-size: 11px; color: #6c757d; }
-    .cart-item-price { font-size: 12px; color: #333; }
-    .qty-controls { display: flex; align-items: center; gap: 6px; }
-    .btn-qty-mini { border: 1px solid #ccc; background: #fff; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    /* UI Counter Mix & Match */
+    .counter-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e0e0e0; }
+    .counter-item-row:last-child { border-bottom: none; }
+    .counter-item-name { font-size: 13px; font-weight: 600; color: #333; }
+    .counter-control { display: flex; align-items: center; gap: 10px; }
+    .btn-counter-mini { width: 30px; height: 30px; border: 1px solid #1b5e20; background: #e8f5e9; color: #1b5e20; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-counter-mini:active { background: #c8e6c9; }
+    .counter-val { font-size: 14px; font-weight: 800; min-width: 20px; text-align: center; }
 
-    /* Print Area Hide */
-    #receipt-print { display: none; }
+    .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .chip-btn { background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #495057; cursor: pointer; }
 
+    /* Cart Row */
+    .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }
+    .cart-item-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .cart-item-sub { font-size: 11px; color: #2e7d32; font-weight: 600; margin-bottom: 2px; }
+    .cart-item-price { font-size: 12px; color: #6c757d; }
+    .qty-controls { display: flex; align-items: center; gap: 8px; }
+    .btn-qty-mini { width: 28px; height: 28px; border: 1px solid #ced4da; background: #fff; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    .modal-footer { padding: 16px; border-top: 1px solid #eee; background: #f8f9fa; }
+    .summary-line { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+    .btn-confirm-pay { width: 100%; padding: 14px; background: #2e7d32; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+    /* Print Thermal Layout */
     @media print {
       body * { visibility: hidden; }
       #receipt-print, #receipt-print * { visibility: visible; }
-      #receipt-print { display: block; position: absolute; left: 0; top: 0; width: var(--paper-width); font-family: monospace; font-size: 11px; line-height: 1.2; }
+      #receipt-print { position: absolute; left: 0; top: 0; width: var(--paper-width, 58mm); padding: 5px; font-size: 10px; font-family: monospace; }
     }
+    #receipt-print { display: none; }
   </style>
 </head>
 <body>
 
-  <!-- Top Bar -->
-  <header>
-    <div class="store-info">
-      <h2 id="displayStoreName">KTLM Kitchen POS</h2>
-    </div>
-    <div class="header-actions">
-      <button class="btn btn-primary" onclick="openIncomingOrdersModal()">📦 Orderan Katalog</button>
-      <button class="btn btn-outline" onclick="openSettingsModal()">⚙️ Pengaturan</button>
-    </div>
+  <!-- Header -->
+  <header class="app-header">
+    <h1>KTLM Kitchen</h1>
+    <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
   </header>
 
-  <!-- Main POS Area -->
-  <div class="pos-container">
-    <div class="product-section">
-      <div class="filter-bar">
-        <input type="text" id="searchInput" placeholder="Cari produk..." oninput="filterProducts()">
-        <select id="categoryFilter" onchange="filterProducts()">
-          <option value="">Semua Kategori</option>
-        </select>
-      </div>
-      <div id="productGrid" class="product-grid"></div>
+  <!-- Container Utama -->
+  <div class="main-container">
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu..." oninput="filterProducts()">
+
+    <div class="category-bar" id="categoryBar">
+      <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
     </div>
 
-    <div class="cart-section">
-      <div class="cart-header">Keranjang Belanja</div>
-      <div id="cartList" class="cart-items">
-        <p style="color:#6c757d; font-size:13px; text-align:center;">Keranjang kosong</p>
+    <!-- Grid Produk -->
+    <div class="product-grid" id="productGrid">
+      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
+    </div>
+  </div>
+
+  <!-- Bottom Action Bar -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-info">
+      <span class="bottom-bar-items" id="barItemCount">0 Item</span>
+      <span class="bottom-bar-total" id="barTotalAmount">Rp0</span>
+    </div>
+    <button class="btn-checkout" id="btnOpenCheckout" onclick="openCheckoutModal()" disabled>
+      Lanjutkan Pesanan →
+    </button>
+  </div>
+
+  <!-- Modal Pilih Subkategori / Variasi & Mix Counter -->
+  <div class="modal-overlay" id="subCategoryModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="subModalTitle">Pilih Variasi & Penyajian</span>
+        <button class="btn-close" onclick="closeSubModal()">&times;</button>
       </div>
-      <div class="cart-footer">
-        <div class="cart-total">
-          <span>Total:</span>
-          <span id="cartTotalText">Rp0</span>
-        </div>
-        <button id="btnCheckout" class="btn btn-success" onclick="openCheckoutModal()" disabled>Lanjut Pembayaran</button>
+      <div class="modal-body" id="subModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-confirm-pay" onclick="confirmSubCategorySelection()">+ TAMBAHKAN KE PESANAN</button>
       </div>
     </div>
   </div>
 
   <!-- Modal Checkout -->
-  <div id="checkoutModal" class="modal" style="display:none;">
+  <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Ringkasan Pembayaran</h3>
-        <span class="close-btn" onclick="closeCheckoutModal()">&times;</span>
+        <span class="modal-title">Konfirmasi Pesanan</span>
+        <button class="btn-close" onclick="closeCheckoutModal()">&times;</button>
       </div>
+      
       <div class="modal-body">
-        <div id="modalCartList" style="margin-bottom: 12px;"></div>
-        <div style="margin-bottom: 10px;">
-          <label style="font-size: 12px; font-weight: bold;">Pelanggan:</label>
-          <input type="text" id="customerSelect" value="Umum" style="width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
+        <div class="form-group">
+          <label for="customerSelect">PELANGGAN / CUSTOMER</label>
+          <select id="customerSelect" class="form-select">
+            <option value="Umum">Umum / Walk-in</option>
+          </select>
         </div>
-        <div style="margin-bottom: 10px;">
-          <label style="font-size: 12px; font-weight: bold;">Metode Pembayaran:</label>
-          <select id="paymentMethodSelect" style="width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
+
+        <div class="form-group">
+          <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
+          <select id="paymentMethodSelect" class="form-select">
             <option value="Tunai">Tunai</option>
             <option value="QRIS">QRIS</option>
-            <option value="Transfer">Transfer</option>
+            <option value="Transfer">Transfer Bank</option>
           </select>
         </div>
-        <div style="margin-bottom: 10px;">
-          <label style="font-size: 12px; font-weight: bold;">Catatan Pesanan:</label>
-          <input type="text" id="orderNote" placeholder="Contoh: Pedas, Tanpa Bawang" style="width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;">
-          <div style="margin-top: 4px; display: flex; gap: 4px;">
-            <button class="btn btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
-            <button class="btn btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="addQuickNote('Pedas')">+ Pedas</button>
+
+        <div class="form-group">
+          <label for="orderNote">CATATAN KHUSUS / NOTE</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
+          
+          <div class="quick-chips">
+            <button class="chip-btn" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
+            <button class="chip-btn" onclick="addQuickNote('Makan di Tempat')">+ Dine-In</button>
+            <button class="chip-btn" onclick="addQuickNote('Pedas')">+ Pedas</button>
+            <button class="chip-btn" onclick="addQuickNote('Sedang')">+ Pedas Sedang</button>
+            <button class="chip-btn" onclick="addQuickNote('Tanpa Cuka')">+ Tanpa Cuka</button>
           </div>
         </div>
-      </div>
-      <button class="btn btn-success" style="margin-top: 10px;" onclick="processPayment()">Bayar & Cetak Struk</button>
-    </div>
-  </div>
 
-  <!-- Modal Orderan Masuk Katalog -->
-  <div id="incomingOrdersModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3>Daftar Orderan Masuk (Katalog)</h3>
-        <span class="close-btn" onclick="closeIncomingOrdersModal()">&times;</span>
-      </div>
-      <div class="modal-body">
-        <div id="incomingOrdersList">
-          <p style="color:#6c757d; font-size:13px;">Memuat data orderan...</p>
+        <div class="form-group">
+          <label>RINCIAN PESANAN</label>
+          <div id="modalCartList"></div>
         </div>
       </div>
+
+      <div class="modal-footer">
+        <div class="summary-line">
+          <span>TOTAL:</span>
+          <span id="modalTotalAmount">Rp0</span>
+        </div>
+        <button class="btn-confirm-pay" onclick="processPayment()">BAYAR & PRINT STRUK</button>
+      </div>
     </div>
   </div>
 
-  <!-- Modal Pengaturan POS & Printer -->
-  <div id="settingsModal" class="modal" style="display:none;">
+  <!-- Modal Pengaturan -->
+  <div class="modal-overlay" id="settingsModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Pengaturan POS & Printer</h3>
-        <span class="close-btn" onclick="closeSettingsModal()">&times;</span>
+        <span class="modal-title">⚙️ Pengaturan POS & Tampilan</span>
+        <button class="btn-close" onclick="closeSettingsModal()">&times;</button>
       </div>
-      <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
-        <label style="font-size: 13px;">
-          <input type="checkbox" id="settingShowImages"> Tampilkan Gambar Produk
-        </label>
-        <div>
-          <label style="font-size: 12px; font-weight: bold;">Mode Cetak:</label>
-          <select id="settingPrintMode" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-            <option value="browser">Browser Print (Bawaan)</option>
-            <option value="rawbt">RawBT (Aplikasi Android)</option>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>TAMPILAN GAMBAR MENU</label>
+          <div class="toggle-container">
+            <span style="font-size: 13px; font-weight: 600; color: #333;">Tampilkan Gambar Produk</span>
+            <label class="switch">
+              <input type="checkbox" id="settingShowImages">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="settingPrintMode">METODE PENCETAKAN STRUK</label>
+          <select id="settingPrintMode" class="form-select">
+            <option value="rawbt">Direct RawBT App (Rekomendasi HP Android)</option>
+            <option value="browser">Sistem Browser Native (Window.print)</option>
           </select>
         </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold;">Ukuran Kertas Struk:</label>
-          <select id="settingPaperSize" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-            <option value="58mm">58 mm Thermal</option>
-            <option value="80mm">80 mm Thermal</option>
+
+        <div class="form-group">
+          <label for="settingPaperSize">UKURAN KERTAS PRINTER</label>
+          <select id="settingPaperSize" class="form-select">
+            <option value="58mm">58 mm (Printer Kasir Mini)</option>
+            <option value="80mm">80 mm (Printer Kasir Sedang/Besar)</option>
           </select>
         </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold;">Nama Toko di Struk:</label>
-          <input type="text" id="settingHeaderStore" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+
+        <div class="form-group">
+          <label for="settingHeaderStore">NAMA TOKO (HEADER)</label>
+          <input type="text" id="settingHeaderStore" class="form-input" placeholder="KTLM Kitchen">
         </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold;">Alamat Toko:</label>
-          <input type="text" id="settingAddressStore" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+
+        <div class="form-group">
+          <label for="settingAddressStore">ALAMAT / KETERANGAN</label>
+          <input type="text" id="settingAddressStore" class="form-input" placeholder="Jl. Laks Martadinata 59D">
         </div>
-        <div>
-          <label style="font-size: 12px; font-weight: bold;">WhatsApp Toko:</label>
-          <input type="text" id="settingWaStore" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+
+        <div class="form-group">
+          <label for="settingWaStore">NOMOR WA / TELP</label>
+          <input type="text" id="settingWaStore" class="form-input" placeholder="085838976880">
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top: 12px;" onclick="savePrinterSettings()">Simpan Pengaturan</button>
+
+      <div class="modal-footer">
+        <button class="btn-confirm-pay" onclick="savePrinterSettings()">SIMPAN PENGATURAN</button>
+      </div>
     </div>
   </div>
 
-  <!-- Hidden Container for Printing -->
   <div id="receipt-print"></div>
 
-  <!-- JavaScript App Logic -->
   <script>
-    const API_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"; // Sesuaikan URL API backend Anda
+    const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
+    const DEFAULT_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f3f5'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%23adb5bd'>KTLM</text></svg>";
 
+    let storeConfig = {};
     let allProducts = [];
+    let allCustomers = [];
+    let allSubcategories = [];
     let cart = [];
-    let incomingOrders = [];
-    let storeConfig = { nama: "KTLM Kitchen", alamat: "", wa: "" };
+    let selectedCategory = "ALL";
+    let activeSubProduct = null;
+    let selectedSubOptions = {};
+
     let posSettings = {
       showImages: true,
-      printMode: "browser",
-      paperSize: "58mm",
-      headerName: "KTLM Kitchen",
-      address: "",
-      waPhone: ""
+      printMode: 'rawbt',
+      paperSize: '58mm',
+      headerName: 'KTLM Kitchen',
+      address: '',
+      waPhone: ''
     };
 
-    function loadData() {
-      const savedSettings = localStorage.getItem('ktlm_pos_settings');
-      if (savedSettings) {
-        posSettings = JSON.parse(savedSettings);
-        document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-        document.getElementById("displayStoreName").innerText = posSettings.headerName || storeConfig.nama;
+    function initSettings() {
+      const saved = localStorage.getItem('ktlm_pos_settings');
+      if (saved) {
+        try {
+          posSettings = Object.assign(posSettings, JSON.parse(saved));
+        } catch(e){}
       }
-      
-      // Simulasi data produk (bisa diganti dengan fetch dari API)
-      allProducts = [
-        { id: 1, nama: "Nasi Goreng Spesial", harga: 20000, kategori: "Makanan", gambar: "https://via.placeholder.com/100" },
-        { id: 2, nama: "Mie Goreng Jawa", harga: 18000, kategori: "Makanan", gambar: "https://via.placeholder.com/100" },
-        { id: 3, nama: "Es Teh Manis", harga: 5000, kategori: "Minuman", gambar: "https://via.placeholder.com/100" },
-        { id: 4, nama: "Kopi Hitam", harga: 8000, kategori: "Minuman", gambar: "https://via.placeholder.com/100" }
-      ];
-
-      populateCategories();
-      filterProducts();
+      document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
     }
 
-    function populateCategories() {
-      const categories = [...new Set(allProducts.map(p => p.kategori))];
-      const select = document.getElementById("categoryFilter");
-      select.innerHTML = '<option value="">Semua Kategori</option>';
-      categories.forEach(cat => {
-        select.innerHTML += `<option value="${cat}">${cat}</option>`;
-      });
+    function fixImageUrl(url) {
+      if (!url || typeof url !== 'string' || url.trim() === '') return DEFAULT_PLACEHOLDER;
+      if (url.includes('drive.google.com')) {
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          return `https://lh3.googleusercontent.com/d/${match[1]}`;
+        }
+      }
+      return url;
     }
 
-    function filterProducts() {
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      const cat = document.getElementById("categoryFilter").value;
+    async function loadData() {
+      initSettings();
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        storeConfig = data.store || {};
+        allProducts = data.products || [];
+        allCustomers = data.customers || [];
+        allSubcategories = data.subkategori || [];
 
-      const filtered = allProducts.filter(p => {
-        const matchSearch = p.nama.toLowerCase().includes(search);
-        const matchCat = cat === "" || p.kategori === cat;
-        return matchSearch && matchCat;
-      });
+        renderCategories();
+        renderProducts(allProducts);
+        renderCustomers();
+      } catch (err) {
+        alert("Gagal memuat data dari server.");
+      }
+    }
 
-      renderProducts(filtered);
+    function renderCustomers() {
+      const custSelect = document.getElementById("customerSelect");
+      if (allCustomers.length > 0) {
+        custSelect.innerHTML = allCustomers.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
+      } else {
+        custSelect.innerHTML = `<option value="Umum">Umum / Walk-in</option>`;
+      }
+    }
+
+    function renderCategories() {
+      const categories = ["ALL", ...new Set(allProducts.map(p => p.kategori).filter(Boolean))];
+      const catBar = document.getElementById("categoryBar");
+      catBar.innerHTML = categories.map(cat => 
+        `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
+      ).join('');
     }
 
     function renderProducts(products) {
       const grid = document.getElementById("productGrid");
       if (products.length === 0) {
-        grid.innerHTML = "<p style='grid-column: 1/-1; text-align:center; color:#888;'>Produk tidak ditemukan.</p>";
+        grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Menu tidak ditemukan</p>';
         return;
       }
+      
+      grid.innerHTML = products.map(p => {
+        const totalQtyInCart = cart
+          .filter(c => c.product.id === p.id)
+          .reduce((sum, i) => sum + i.qty, 0);
 
-      grid.innerHTML = products.map(p => `
-        <div class="product-card" onclick="addToCart(${p.id})">
-          ${posSettings.showImages ? `<img src="${p.gambar}" alt="${p.nama}">` : ''}
-          <div>
-            <div class="product-title">${p.nama}</div>
-            <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
-          </div>
-        </div>
-      `).join('');
+        const subCategories = getSubCategoriesForProduct(p);
+        const hasSub = subCategories.length > 0;
+        const imgUrl = fixImageUrl(p.gambar);
+        const isSelected = totalQtyInCart > 0;
+
+        if (posSettings.showImages) {
+          return `
+            <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
+              <div class="product-img-wrapper">
+                <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
+                ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
+              </div>
+              
+              <div class="product-details">
+                <div class="product-info-text">
+                  <div class="product-title">${p.nama}</div>
+                  <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
+                </div>
+
+                ${isSelected ? `
+                  <div class="qty-badge-inline" onclick="event.stopPropagation()">
+                    <input type="number" min="0" class="qty-input-inline" 
+                           value="${totalQtyInCart}" 
+                           onchange="onQtyDirectChange('${p.id}', this.value)"
+                           onfocus="this.select()">
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
+              <div class="compact-details">
+                <div class="product-title">${p.nama}</div>
+                <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
+                ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
+              </div>
+              
+              ${isSelected ? `
+                <div class="qty-badge-inline" onclick="event.stopPropagation()">
+                  <input type="number" min="0" class="qty-input-inline" 
+                         value="${totalQtyInCart}" 
+                         onchange="onQtyDirectChange('${p.id}', this.value)"
+                         onfocus="this.select()">
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+      }).join('');
     }
 
-    function addToCart(productId) {
+    function getSubCategoriesForProduct(product) {
+      if (!allSubcategories || allSubcategories.length === 0) return [];
+      return allSubcategories.filter(s => 
+        (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
+        (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
+      );
+    }
+
+    function handleProductClick(id, event) {
+      const product = allProducts.find(p => p.id === id);
+      if (!product) return;
+
+      const subCategories = getSubCategoriesForProduct(product);
+
+      if (subCategories.length > 0) {
+        openSubCategoryModal(product, subCategories);
+      } else {
+        addToCart(product, 1, "");
+      }
+    }
+
+    function onQtyDirectChange(productId, val) {
       const product = allProducts.find(p => p.id === productId);
       if (!product) return;
 
-      const existingIndex = cart.findIndex(item => item.product.id === productId);
-      if (existingIndex > -1) {
-        cart[existingIndex].qty += 1;
+      const newQty = parseInt(val) || 0;
+      const subCategories = getSubCategoriesForProduct(product);
+
+      if (subCategories.length > 0) {
+        openSubCategoryModal(product, subCategories);
       } else {
-        cart.push({ product: product, qty: 1, subVariant: '' });
+        updateDirectQty(productId, newQty);
+      }
+    }
+
+    /* Modal Subkategori & Mix-Match Counter */
+    function openSubCategoryModal(product, subCategories) {
+      activeSubProduct = product;
+      selectedSubOptions = {};
+
+      document.getElementById("subModalTitle").innerText = product.nama;
+      const modalBody = document.getElementById("subModalBody");
+
+      let html = '';
+      subCategories.forEach((group, index) => {
+        const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
+        let rawOptions = group.opsi || group.pilihan || "";
+        let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
+
+        const groupLower = groupName.toLowerCase();
+        
+        // Deteksi Otomatis Jika Grup adalah Pilihan Paket Varian Isi (Mix & Match)
+        const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
+                               groupLower.includes('paket') || groupLower.includes('pilih') || 
+                               group.tipe === 'counter';
+
+        if (optionsList.length > 0) {
+          if (isCounterGroup) {
+            selectedSubOptions[groupName] = {};
+            optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
+
+            html += `
+              <div class="option-group">
+                <div class="option-label">
+                  <span>${groupName.toUpperCase()}</span>
+                  <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
+                </div>
+                <div>
+                  ${optionsList.map(opt => `
+                    <div class="counter-item-row">
+                      <span class="counter-item-name">${opt}</span>
+                      <div class="counter-control">
+                        <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
+                        <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
+                        <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          } else {
+            // Pilihan Single (Sejenis Penyajian: Goreng/Kukus/Vakum & Cuka: Pedas/Tidak)
+            selectedSubOptions[groupName] = optionsList[0];
+
+            html += `
+              <div class="option-group">
+                <div class="option-label">
+                  <span>${groupName.toUpperCase()}</span>
+                  <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
+                </div>
+                <div class="chips-container">
+                  ${optionsList.map((opt, optIndex) => `
+                    <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
+                            onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
+                      ${opt}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+        }
+      });
+
+      html += `
+        <div class="form-group" style="margin-top:15px;">
+          <label>JUMLAH PAKET / PORSI</label>
+          <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
+        </div>
+      `;
+
+      modalBody.innerHTML = html;
+      document.getElementById("subCategoryModal").style.display = "flex";
+    }
+
+    function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
+      if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
+      
+      let currentVal = selectedSubOptions[groupName][optionValue] || 0;
+      let newVal = Math.max(0, currentVal + delta);
+      selectedSubOptions[groupName][optionValue] = newVal;
+
+      const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
+      const el = document.getElementById(elementId);
+      if (el) el.innerText = newVal;
+
+      const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
+      const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
+      if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
+    }
+
+    function selectSingleSubOption(groupName, optionValue, btn) {
+      selectedSubOptions[groupName] = optionValue;
+      const parent = btn.parentElement;
+      parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function closeSubModal() {
+      document.getElementById("subCategoryModal").style.display = "none";
+      activeSubProduct = null;
+    }
+
+    function confirmSubCategorySelection() {
+      if (!activeSubProduct) return;
+      const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
+      
+      let formattedSelections = [];
+
+      Object.keys(selectedSubOptions).forEach(key => {
+        const val = selectedSubOptions[key];
+        if (typeof val === 'object' && val !== null) {
+          let itemsList = [];
+          Object.keys(val).forEach(itemKey => {
+            if (val[itemKey] > 0) {
+              itemsList.push(`${val[itemKey]} ${itemKey}`);
+            }
+          });
+          if (itemsList.length > 0) {
+            formattedSelections.push(itemsList.join(', '));
+          }
+        } else if (val) {
+          formattedSelections.push(val);
+        }
+      });
+
+      const subVariantText = formattedSelections.join(' | ');
+
+      addToCart(activeSubProduct, qty, subVariantText);
+      closeSubModal();
+    }
+
+    function addToCart(product, qty, subVariant) {
+      const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        cart.push({ product: product, qty: qty, subVariant: subVariant || "" });
       }
       updateCartUI();
+      filterProducts();
+    }
+
+    function updateDirectQty(productId, newQty) {
+      const existingIndex = cart.findIndex(item => item.product.id === productId);
+      if (newQty <= 0) {
+        if (existingIndex !== -1) cart.splice(existingIndex, 1);
+      } else {
+        if (existingIndex !== -1) {
+          cart[existingIndex].qty = newQty;
+        } else {
+          const product = allProducts.find(p => p.id === productId);
+          if (product) cart.push({ product: product, qty: newQty, subVariant: "" });
+        }
+      }
+      updateCartUI();
+      filterProducts();
     }
 
     function updateQtyInCartList(index, delta) {
       if (cart[index]) {
         cart[index].qty += delta;
-        if (cart[index].qty <= 0) {
-          cart.splice(index, 1);
-        }
+        if (cart[index].qty <= 0) cart.splice(index, 1);
       }
       updateCartUI();
-      if (document.getElementById("checkoutModal").style.display === "flex") {
-        renderModalCartList();
+      renderModalCartList();
+      filterProducts();
+      
+      if (cart.length === 0) {
+        closeCheckoutModal();
       }
     }
 
+    function filterCategory(cat, btn) {
+      selectedCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterProducts();
+    }
+
+    function filterProducts() {
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+      let filtered = allProducts.filter(p => {
+        const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
+        const matchSearch = p.nama.toLowerCase().includes(keyword);
+        return matchCat && matchSearch;
+      });
+      renderProducts(filtered);
+    }
+
     function updateCartUI() {
-      const cartContainer = document.getElementById("cartList");
-      const totalText = document.getElementById("cartTotalText");
-      const btnCheckout = document.getElementById("btnCheckout");
+      const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+      const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
 
-      if (cart.length === 0) {
-        cartContainer.innerHTML = "<p style='color:#6c757d; font-size:13px; text-align:center;'>Keranjang kosong</p>";
-        totalText.innerText = "Rp0";
-        btnCheckout.disabled = true;
-        return;
+      document.getElementById("barItemCount").innerText = `${totalQty} Item`;
+      document.getElementById("barTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
+      document.getElementById("modalTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
+
+      const btnCheckout = document.getElementById("btnOpenCheckout");
+      if (btnCheckout) {
+        btnCheckout.disabled = cart.length === 0;
       }
-
-      let total = 0;
-      cartContainer.innerHTML = cart.map((item, idx) => {
-        const itemTotal = item.product.harga * item.qty;
-        total += itemTotal;
-        return `
-          <div class="cart-item-row">
-            <div>
-              <div class="cart-item-name">${item.product.nama}</div>
-              <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty}</div>
-            </div>
-            <div class="qty-controls">
-              <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
-              <span style="font-weight:bold; font-size:13px;">${item.qty}</span>
-              <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, 1)">+</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      totalText.innerText = `Rp${total.toLocaleString('id-ID')}`;
-      btnCheckout.disabled = false;
     }
 
     function openCheckoutModal() {
@@ -372,11 +710,8 @@
 
     function renderModalCartList() {
       const listContainer = document.getElementById("modalCartList");
-      if (cart.length === 0) {
-        listContainer.innerHTML = "<p style='color:#6c757d; font-size:13px;'>Keranjang kosong</p>";
-        return;
-      }
-      listContainer.innerHTML = cart.map((item, idx) => `
+      if (!listContainer) return;
+      listContainer.innerHTML = cart.map((item, index) => `
         <div class="cart-item-row">
           <div>
             <div class="cart-item-name">${item.product.nama}</div>
@@ -384,9 +719,9 @@
             <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty} = Rp${(item.product.harga * item.qty).toLocaleString('id-ID')}</div>
           </div>
           <div class="qty-controls">
-            <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
-            <span style="font-weight:bold; font-size:13px;">${item.qty}</span>
-            <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, 1)">+</button>
+            <button class="btn-qty-mini" onclick="updateQtyInCartList(${index}, -1)">-</button>
+            <span style="font-weight: bold; font-size: 13px;">${item.qty}</span>
+            <button class="btn-qty-mini" onclick="updateQtyInCartList(${index}, 1)">+</button>
           </div>
         </div>
       `).join('');
@@ -394,97 +729,22 @@
 
     function addQuickNote(text) {
       const noteInput = document.getElementById("orderNote");
+      if (!noteInput) return;
       if (noteInput.value.trim() === "") {
         noteInput.value = text;
-      } else {
-        noteInput.value += `, ${text}`;
+      } else if (!noteInput.value.includes(text)) {
+        noteInput.value += ", " + text;
       }
     }
 
-    /* Modul Orderan Katalog Masuk */
-    async function openIncomingOrdersModal() {
-      document.getElementById("incomingOrdersModal").style.display = "flex";
-      await fetchIncomingOrders();
-    }
-
-    function closeIncomingOrdersModal() {
-      document.getElementById("incomingOrdersModal").style.display = "none";
-    }
-
-    async function fetchIncomingOrders() {
-      const container = document.getElementById("incomingOrdersList");
-      container.innerHTML = "<p style='color:#6c757d; font-size:13px;'>Memuat orderan dari server...</p>";
-
-      try {
-        const response = await fetch(API_URL + "?action=getIncomingOrders");
-        incomingOrders = await response.json();
-        renderIncomingOrdersList(incomingOrders);
-      } catch (error) {
-        console.error("Gagal mengambil orderan katalog:", error);
-        container.innerHTML = "<p style='color:#dc3545; font-size:13px;'>Gagal memuat data orderan.</p>";
-      }
-    }
-
-    function renderIncomingOrdersList(orders) {
-      const container = document.getElementById("incomingOrdersList");
-      if (!orders || orders.length === 0) {
-        container.innerHTML = "<p style='color:#6c757d; font-size:13px;'>Tidak ada orderan masuk saat ini.</p>";
-        return;
-      }
-
-      container.innerHTML = orders.map((order, idx) => `
-        <div class="cart-item-row" style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;" onclick="processSelectedIncomingOrder(${idx})">
-          <div>
-            <div style="font-weight: bold; font-size: 13px;">${order.pelanggan} (${order.metode || 'Katalog'})</div>
-            <div style="font-size: 11px; color: #6c757d;">${new Date(order.tanggal).toLocaleString('id-ID')}</div>
-            <div style="font-size: 12px; font-weight: bold; color: #28a745; margin-top: 2px;">Total: Rp${order.total.toLocaleString('id-ID')}</div>
-          </div>
-          <button class="btn btn-primary" style="padding: 4px 8px; font-size: 12px;">Proses & Print</button>
-        </div>
-      `).join('');
-    }
-
-    async function processSelectedIncomingOrder(index) {
-      const order = incomingOrders[index];
-      if (!order) return;
-
-      let textSummary = `*PESANAN KATALOG MASUK*\n`;
-      textSummary += `Pelanggan: ${order.pelanggan}\n`;
-      textSummary += `Metode   : ${order.metode || 'Katalog'}\n`;
-      textSummary += `Tanggal  : ${new Date(order.tanggal).toLocaleString('id-ID')}\n`;
-      textSummary += `--------------------------------\n`;
-      
-      order.items.forEach(item => {
-        textSummary += `${item.nama} x${item.qty}\n`;
-        if (item.variasi) textSummary += `  (${item.variasi})\n`;
-        textSummary += `  Subtotal: Rp${(item.harga * item.qty).toLocaleString('id-ID')}\n`;
-      });
-      
-      textSummary += `--------------------------------\n`;
-      textSummary += `TOTAL    : Rp${order.total.toLocaleString('id-ID')}\n`;
-      if (order.catatan) textSummary += `Catatan  : ${order.catatan}\n`;
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(textSummary);
-        } catch (err) {
-          console.warn("Gagal menyalin otomatis ke clipboard:", err);
-        }
-      }
-
-      printReceipt(order);
-      alert(`Pesanan atas nama ${order.pelanggan} berhasil disalin ke clipboard & dikirim ke printer!`);
-      closeIncomingOrdersModal();
-    }
-
-    /* Pengaturan Printer & Toko */
     function openSettingsModal() {
       document.getElementById("settingShowImages").checked = posSettings.showImages;
       document.getElementById("settingPrintMode").value = posSettings.printMode;
       document.getElementById("settingPaperSize").value = posSettings.paperSize;
-      document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.nama;
-      document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.alamat;
-      document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.wa;
+      document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.nama_toko || 'KTLM Kitchen';
+      document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.alamat || '';
+      document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.whatsapp || '';
+
       document.getElementById("settingsModal").style.display = "flex";
     }
 
@@ -502,11 +762,10 @@
 
       localStorage.setItem('ktlm_pos_settings', JSON.stringify(posSettings));
       document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-      document.getElementById("displayStoreName").innerText = posSettings.headerName;
 
       closeSettingsModal();
       filterProducts();
-      alert("Pengaturan berhasil disimpan.");
+      alert("Pengaturan berhasil disimpan!");
     }
 
     async function processPayment() {
@@ -515,73 +774,57 @@
       const customer = document.getElementById("customerSelect").value;
       const paymentMethod = document.getElementById("paymentMethodSelect").value;
       const note = document.getElementById("orderNote").value;
-      const totalAmount = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
+      const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
 
       const orderData = {
-        tanggal: new Date().toISOString(),
-        pelanggan: customer,
-        metode: paymentMethod,
-        catatan: note,
-        items: cart.map(i => ({
-          id: i.product.id,
-          nama: i.product.nama,
-          harga: i.product.harga,
-          qty: i.qty,
-          variasi: i.subVariant,
-          subtotal: i.product.harga * i.qty
-        })),
-        total: totalAmount
+        customer: customer,
+        paymentMethod: paymentMethod,
+        note: note,
+        totalAmount: totalPrice,
+        items: cart.map(item => ({
+          nama: item.product.nama,
+          harga: item.product.harga,
+          qty: item.qty,
+          subVariant: item.subVariant
+        }))
       };
-
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderData)
-        });
-      } catch (e) {
-        console.error("Gagal mengirim data ke server:", e);
-      }
 
       printReceipt(orderData);
 
       cart = [];
       document.getElementById("orderNote").value = "";
       updateCartUI();
+      filterProducts();
       closeCheckoutModal();
-      alert("Transaksi berhasil diproses!");
     }
 
     function printReceipt(order) {
-      const storeName = posSettings.headerName || storeConfig.nama;
-      const address = posSettings.address || storeConfig.alamat;
-      const wa = posSettings.waPhone || storeConfig.wa;
-      const dateStr = new Date(order.tanggal || Date.now()).toLocaleString('id-ID');
+      const storeName = posSettings.headerName || storeConfig.nama_toko || "KTLM Kitchen";
+      const storeAddr = posSettings.address || storeConfig.alamat || "Jl. Laks Martadinata 59D";
+      const storeWa = posSettings.waPhone || storeConfig.whatsapp || "085838976880";
+      const dateStr = new Date().toLocaleString('id-ID');
 
-      let receiptText = `${storeName}\n`;
-      if (address) receiptText += `${address}\n`;
-      if (wa) receiptText += `WA: ${wa}\n`;
-      receiptText += `--------------------------------\n`;
+      let receiptText = `${storeName}\n${storeAddr}\nTelp/WA: ${storeWa}\n--------------------------------\n`;
       receiptText += `Tanggal : ${dateStr}\n`;
-      receiptText += `Pelanggan: ${order.pelanggan}\n`;
-      receiptText += `Bayar    : ${order.metode}\n`;
+      receiptText += `Pelanggan: ${order.customer}\n`;
+      receiptText += `Bayar    : ${order.paymentMethod}\n`;
+      if (order.note) receiptText += `Catatan  : ${order.note}\n`;
       receiptText += `--------------------------------\n`;
 
       order.items.forEach(item => {
-        receiptText += `${item.nama} x${item.qty}\n`;
-        if (item.variasi) receiptText += `  (${item.variasi})\n`;
-        receiptText += `  @Rp${item.harga.toLocaleString('id-ID')} = Rp${item.subtotal.toLocaleString('id-ID')}\n`;
+        receiptText += `${item.nama}\n`;
+        if (item.subVariant) receiptText += `  (${item.subVariant})\n`;
+        const subtotal = item.harga * item.qty;
+        receiptText += `  ${item.qty} x ${item.harga.toLocaleString('id-ID')} = ${subtotal.toLocaleString('id-ID')}\n`;
       });
 
       receiptText += `--------------------------------\n`;
-      receiptText += `TOTAL    : Rp${order.total.toLocaleString('id-ID')}\n`;
-      if (order.catatan) receiptText += `Catatan  : ${order.catatan}\n`;
+      receiptText += `TOTAL    : Rp${order.totalAmount.toLocaleString('id-ID')}\n`;
       receiptText += `--------------------------------\n`;
-      receiptText += `Terima Kasih!\n\n\n`;
+      receiptText += `  Terima Kasih Atas Kunjungan Anda\n\n\n`;
 
       if (posSettings.printMode === 'rawbt') {
-        const rawbtUrl = "intent:#Intent;scheme=rawbt;package=ru.is_it_rub.rawbt;S.responseText=" + encodeURIComponent(receiptText) + ";end;";
+        const rawbtUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.is_art.myprinter;end;";
         window.location.href = rawbtUrl;
       } else {
         const printArea = document.getElementById("receipt-print");
@@ -590,7 +833,9 @@
       }
     }
 
-    window.onload = loadData;
+    window.onload = function() {
+      loadData();
+    };
   </script>
 </body>
 </html>

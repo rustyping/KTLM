@@ -1227,93 +1227,95 @@ async function processAndPrintCatalogOrder(rowNum) {
 
 
 function printReceiptFromCatalog(order) {
-
   const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-
   const storeAddr = posSettings.address || storeConfig.Alamat || '';
-
   const storeWa = posSettings.waPhone || storeConfig.WA || '';
-
   const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
 
+  // 1. Pecah detailItems & cari harga dari allProducts
+  let formattedItemsText = "";
+  let htmlItemsText = "";
 
+  let [rawItems, noteText] = (order.detailItems || "").split(/\|\s*Catatan:\s*/i);
+  let itemList = rawItems.split(",").map(i => i.trim()).filter(Boolean);
 
-  if (posSettings.printMode === 'rawbt') {
+  itemList.forEach(itemStr => {
+    // Ambil nama item dan Qty (misal: "Nasi Goreng (2x)")
+    const match = itemStr.match(/^(.*?)(?:\s*\((?:(\d+)x)\))?$/);
+    let name = itemStr;
+    let qty = 1;
 
-    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
+    if (match) {
+      name = match[1].trim();
+      if (match[2]) qty = parseInt(match[2], 10) || 1;
+    }
 
-    receiptText += `--------------------------------\n`;
+    // Cari produk di allProducts untuk mendapatkan harga
+    let product = allProducts.find(p => 
+      name.toLowerCase().includes(p.nama.toLowerCase()) || 
+      p.nama.toLowerCase().includes(name.toLowerCase())
+    );
+    let unitPrice = product ? (product.harga || 0) : 0;
+    let itemTotal = unitPrice * qty;
 
-    receiptText += `No: ${order.noInvoice}\nTgl: ${order.waktu}\nCust: ${order.customerName}\nBayar: ${order.jenisPembayaran}\n`;
+    // Teks untuk RawBT
+    if (unitPrice > 0) {
+      formattedItemsText += `${name}\n  ${qty} x Rp${unitPrice.toLocaleString('id-ID')} = Rp${itemTotal.toLocaleString('id-ID')}\n`;
+    } else {
+      formattedItemsText += `${name}\n  ${qty}x\n`;
+    }
 
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `${order.detailItems.replace(/, /g, '\n')}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `TOTAL: Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `${storeBottom}\n\n\n`;
-
-
-
-    window.location.href = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-
-  } else {
-
-    const receipt = document.getElementById("receipt-print");
-
-    if (!receipt) return;
-
-    receipt.style.display = "block";
-
-    receipt.innerHTML = `
-
-      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
-
-      <div style="text-align:center;">${storeAddr}</div>
-
-      <div style="text-align:center;">WA: ${storeWa}</div>
-
-      ----------------------------------<br>
-
-      No: ${order.noInvoice}<br>
-
-      Tgl: ${order.waktu}<br>
-
-      Cust: ${order.customerName}<br>
-
-      Bayar: ${order.jenisPembayaran}<br>
-
-      ----------------------------------<br>
-
-      <div>${order.detailItems.replace(/, /g, '<br>')}</div>
-
-      ----------------------------------<br>
-
-      <div style="display:flex; justify-content:space-between; font-weight:bold;">
-
-        <span>TOTAL:</span>
-
-        <span>Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}</span>
-
+    // HTML untuk Print Browser
+    htmlItemsText += `
+      <div>${name}</div>
+      <div style="display:flex; justify-content:space-between;">
+        <span>${qty} x Rp${unitPrice.toLocaleString('id-ID')}</span>
+        <span>Rp${itemTotal.toLocaleString('id-ID')}</span>
       </div>
-
-      ----------------------------------<br>
-
-      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
-
     `;
+  });
 
+  // 2. Cetak Struk
+  if (posSettings.printMode === 'rawbt') {
+    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `No: ${order.noInvoice}\nTgl: ${order.waktu}\nCust: ${order.customerName}\nBayar: ${order.jenisPembayaran}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${formattedItemsText}`;
+    receiptText += `--------------------------------\n`;
+    if (noteText) receiptText += `Note: ${noteText.trim()}\n--------------------------------\n`;
+    receiptText += `TOTAL: Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${storeBottom}\n`;
+
+    printStrukRawBT(receiptText);
+  } else {
+    const receipt = document.getElementById("receipt-print");
+    if (!receipt) return;
+    receipt.style.display = "block";
+    receipt.innerHTML = `
+      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
+      <div style="text-align:center;">${storeAddr}</div>
+      <div style="text-align:center;">WA: ${storeWa}</div>
+      ----------------------------------<br>
+      No: ${order.noInvoice}<br>
+      Tgl: ${order.waktu}<br>
+      Cust: ${order.customerName}<br>
+      Bayar: ${order.jenisPembayaran}<br>
+      ----------------------------------<br>
+      ${htmlItemsText}
+      ----------------------------------<br>
+      ${noteText ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteText.trim()}</div>----------------------------------<br>` : ''}
+      <div style="display:flex; justify-content:space-between; font-weight:bold;">
+        <span>TOTAL:</span>
+        <span>Rp${(order.totalBelanja || 0).toLocaleString('id-ID')}</span>
+      </div>
+      ----------------------------------<br>
+      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
+    `;
     window.print();
-
     receipt.style.display = "none";
-
   }
-
 }
 
 

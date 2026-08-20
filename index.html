@@ -108,13 +108,22 @@
     input:checked + .slider { background-color: #2e7d32; }
     input:checked + .slider:before { transform: translateX(20px); }
 
-    /* Option Chips Subkategori & Additional */
-    .option-group { margin-bottom: 16px; }
-    .option-label { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+    /* Group Subkategori & Mix-Match Counter */
+    .option-group { margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 10px; border: 1px solid #eee; }
+    .option-label { font-size: 12px; font-weight: 700; color: #1b5e20; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
     .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
-    .chip-option { background: #f1f3f5; border: 1px solid #ced4da; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.15s ease; user-select: none; }
+    .chip-option { background: #fff; border: 1px solid #ced4da; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.15s ease; user-select: none; }
     .chip-option:active { transform: scale(0.95); }
     .chip-option.selected { background: #2e7d32; color: #fff; border-color: #2e7d32; box-shadow: 0 2px 6px rgba(46,125,50,0.3); }
+
+    /* UI Counter Mix & Match */
+    .counter-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e0e0e0; }
+    .counter-item-row:last-child { border-bottom: none; }
+    .counter-item-name { font-size: 13px; font-weight: 600; color: #333; }
+    .counter-control { display: flex; align-items: center; gap: 10px; }
+    .btn-counter-mini { width: 30px; height: 30px; border: 1px solid #1b5e20; background: #e8f5e9; color: #1b5e20; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-counter-mini:active { background: #c8e6c9; }
+    .counter-val { font-size: 14px; font-weight: 800; min-width: 20px; text-align: center; }
 
     .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
     .chip-btn { background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #495057; cursor: pointer; }
@@ -173,11 +182,11 @@
     </button>
   </div>
 
-  <!-- Modal Pilih Subkategori / Variasi & Additional -->
+  <!-- Modal Pilih Subkategori / Variasi & Mix Counter -->
   <div class="modal-overlay" id="subCategoryModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title" id="subModalTitle">Pilih Variasi & Opsi Tambahan</span>
+        <span class="modal-title" id="subModalTitle">Pilih Variasi & Penyajian</span>
         <button class="btn-close" onclick="closeSubModal()">&times;</button>
       </div>
       <div class="modal-body" id="subModalBody"></div>
@@ -401,7 +410,7 @@
             <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
               <div class="product-img-wrapper">
                 <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
-                ${hasSub ? `<span class="variant-tag">+ Variasi/Opsi</span>` : ''}
+                ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
               </div>
               
               <div class="product-details">
@@ -427,7 +436,7 @@
               <div class="compact-details">
                 <div class="product-title">${p.nama}</div>
                 <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
-                ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Opsi</span>` : ''}
+                ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
               </div>
               
               ${isSelected ? `
@@ -479,7 +488,7 @@
       }
     }
 
-    /* Modal Subkategori & Additional Choices */
+    /* Modal Subkategori & Mix-Match Counter */
     function openSubCategoryModal(product, subCategories) {
       activeSubProduct = product;
       selectedSubOptions = {};
@@ -493,45 +502,65 @@
         let rawOptions = group.opsi || group.pilihan || "";
         let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
 
-        // Deteksi Tipe Pilihan (Single / Multi Additional)
-        const tipe = (group.tipe || group.jenis || "").toString().toLowerCase();
-        const isMulti = tipe.includes('multi') || tipe.includes('additional') || tipe.includes('tambahan') || 
-                        groupName.toLowerCase().includes('tambahan') || groupName.toLowerCase().includes('topping') || groupName.toLowerCase().includes('extra');
+        const groupLower = groupName.toLowerCase();
+        
+        // Deteksi Otomatis Jika Grup adalah Pilihan Paket Varian Isi (Mix & Match)
+        const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
+                               groupLower.includes('paket') || groupLower.includes('pilih') || 
+                               group.tipe === 'counter';
 
         if (optionsList.length > 0) {
-          if (isMulti) {
-            selectedSubOptions[groupName] = []; // Array untuk multi-choice
-          } else {
-            selectedSubOptions[groupName] = optionsList[0]; // Single-choice default
-          }
+          if (isCounterGroup) {
+            selectedSubOptions[groupName] = {};
+            optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
 
-          html += `
-            <div class="option-group">
-              <div class="option-label">
-                <span>${groupName.toUpperCase()}</span>
-                <span style="font-size: 10px; font-weight: normal; color: #6c757d;">
-                  ${isMulti ? '(Bisa pilih lebih dari 1)' : '(Pilih salah satu)'}
-                </span>
+            html += `
+              <div class="option-group">
+                <div class="option-label">
+                  <span>${groupName.toUpperCase()}</span>
+                  <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
+                </div>
+                <div>
+                  ${optionsList.map(opt => `
+                    <div class="counter-item-row">
+                      <span class="counter-item-name">${opt}</span>
+                      <div class="counter-control">
+                        <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
+                        <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
+                        <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
-              <div class="chips-container" id="group_${index}">
-                ${optionsList.map((opt, optIndex) => {
-                  const isSelected = !isMulti && optIndex === 0;
-                  return `
-                    <button class="chip-option ${isSelected ? 'selected' : ''}" 
-                            onclick="selectSubOption('${groupName}', '${opt}', this, ${isMulti})">
+            `;
+          } else {
+            // Pilihan Single (Sejenis Penyajian: Goreng/Kukus/Vakum & Cuka: Pedas/Tidak)
+            selectedSubOptions[groupName] = optionsList[0];
+
+            html += `
+              <div class="option-group">
+                <div class="option-label">
+                  <span>${groupName.toUpperCase()}</span>
+                  <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
+                </div>
+                <div class="chips-container">
+                  ${optionsList.map((opt, optIndex) => `
+                    <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
+                            onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
                       ${opt}
                     </button>
-                  `;
-                }).join('')}
+                  `).join('')}
+                </div>
               </div>
-            </div>
-          `;
+            `;
+          }
         }
       });
 
       html += `
         <div class="form-group" style="margin-top:15px;">
-          <label>JUMLAH</label>
+          <label>JUMLAH PAKET / PORSI</label>
           <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
         </div>
       `;
@@ -540,25 +569,27 @@
       document.getElementById("subCategoryModal").style.display = "flex";
     }
 
-    function selectSubOption(groupName, optionValue, btn, isMulti) {
-      if (isMulti) {
-        if (!Array.isArray(selectedSubOptions[groupName])) {
-          selectedSubOptions[groupName] = [];
-        }
-        const idx = selectedSubOptions[groupName].indexOf(optionValue);
-        if (idx > -1) {
-          selectedSubOptions[groupName].splice(idx, 1);
-          btn.classList.remove('selected');
-        } else {
-          selectedSubOptions[groupName].push(optionValue);
-          btn.classList.add('selected');
-        }
-      } else {
-        selectedSubOptions[groupName] = optionValue;
-        const parent = btn.parentElement;
-        parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-      }
+    function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
+      if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
+      
+      let currentVal = selectedSubOptions[groupName][optionValue] || 0;
+      let newVal = Math.max(0, currentVal + delta);
+      selectedSubOptions[groupName][optionValue] = newVal;
+
+      const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
+      const el = document.getElementById(elementId);
+      if (el) el.innerText = newVal;
+
+      const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
+      const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
+      if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
+    }
+
+    function selectSingleSubOption(groupName, optionValue, btn) {
+      selectedSubOptions[groupName] = optionValue;
+      const parent = btn.parentElement;
+      parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
     }
 
     function closeSubModal() {
@@ -571,18 +602,25 @@
       const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
       
       let formattedSelections = [];
+
       Object.keys(selectedSubOptions).forEach(key => {
         const val = selectedSubOptions[key];
-        if (Array.isArray(val)) {
-          if (val.length > 0) {
-            formattedSelections.push(`${key}: ${val.join('+')}`);
+        if (typeof val === 'object' && val !== null) {
+          let itemsList = [];
+          Object.keys(val).forEach(itemKey => {
+            if (val[itemKey] > 0) {
+              itemsList.push(`${val[itemKey]} ${itemKey}`);
+            }
+          });
+          if (itemsList.length > 0) {
+            formattedSelections.push(itemsList.join(', '));
           }
         } else if (val) {
           formattedSelections.push(val);
         }
       });
 
-      const subVariantText = formattedSelections.join(', ');
+      const subVariantText = formattedSelections.join(' | ');
 
       addToCart(activeSubProduct, qty, subVariantText);
       closeSubModal();

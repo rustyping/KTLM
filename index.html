@@ -6,12 +6,12 @@
   <title>Katalog Online</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="katalog-theme">
 
   <!-- Header Katalog -->
   <header class="app-header">
     <h1 id="storeTitleHeader">Katalog Menu</h1>
-    <span style="font-size: 12px; color: #e8f5e9;">Pesan Online</span>
+    <span style="font-size: 12px; color: #e0f2fe;">Pesan Online</span>
   </header>
 
   <!-- Container Utama -->
@@ -24,7 +24,7 @@
 
     <!-- Grid Produk -->
     <div class="product-grid" id="productGrid">
-      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
+      <p style="grid-column: span 2; text-align: center; color: #64748b; padding: 20px;">Memuat menu...</p>
     </div>
   </div>
 
@@ -64,11 +64,11 @@
       <div class="modal-body">
         <!-- Rincian Items -->
         <div class="form-group">
-          <label style="font-weight: bold; color: #2e7d32; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
+          <label style="font-weight: bold; color: #0284c7; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
           <div id="modalCartList"></div>
         </div>
 
-        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+        <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 15px 0;">
 
         <!-- Nama Pemesan -->
         <div class="form-group">
@@ -98,7 +98,7 @@
           <span>TOTAL:</span>
           <span id="modalTotalAmount">Rp0</span>
         </div>
-        <button class="btn-confirm-pay" id="btnSubmitOrder" onclick="submitCatalogOrder()" style="background: #25D366; color: white;">
+        <button class="btn-confirm-pay btn-wa" id="btnSubmitOrder" onclick="submitCatalogOrder()">
           📲 KIRIM ORDER VIA WHATSAPP
         </button>
       </div>

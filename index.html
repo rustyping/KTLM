@@ -1,20 +1,130 @@
-<!-- Disisipkan di dalam <head> pada file index.html -->
-<style>
-  .app-header { background: #0284c7 !important; }
-  .cat-btn.active { 
-    background: #0284c7 !important; 
-    border-color: #0284c7 !important; 
-    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3) !important; 
-  }
-  .btn-checkout, .btn-confirm-pay { 
-    background: #0284c7 !important; 
-    box-shadow: 0 3px 8px rgba(2, 132, 199, 0.3) !important; 
-  }
-  .product-card.has-selected { 
-    border-color: #0284c7 !important; 
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2) !important; 
-  }
-  .qty-badge-inline { background: #0284c7 !important; }
-  .product-price, .bottom-bar-total, .cart-item-sub { color: #0284c7 !important; }
-  .search-box:focus { border-color: #0284c7 !important; }
-</style>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Katalog Online</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Override Warna Khusus Katalog (Tanpa Mengganggu Tampilan Kasir) -->
+  <style>
+    .app-header {
+      background: #0284c7 !important; /* Biru Laut */
+    }
+    .cat-btn.active {
+      background: #0284c7 !important;
+      border-color: #0284c7 !important;
+    }
+    .btn-checkout {
+      background: #0284c7 !important;
+    }
+    .modal-header {
+      background: #0284c7 !important;
+    }
+    #subCategoryModal .btn-confirm-pay {
+      background: #0284c7 !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Katalog -->
+  <header class="app-header">
+    <h1 id="storeTitleHeader">Katalog Menu</h1>
+    <span style="font-size: 12px; color: #e0f2fe;">Pesan Online</span>
+  </header>
+
+  <!-- Container Utama -->
+  <div class="main-container">
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu favorit..." oninput="filterProducts()">
+
+    <div class="category-bar" id="categoryBar">
+      <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
+    </div>
+
+    <!-- Grid Produk -->
+    <div class="product-grid" id="productGrid">
+      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
+    </div>
+  </div>
+
+  <!-- Bottom Bar Pesanan -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-info">
+      <span class="bottom-bar-items" id="barItemCount">0 Item</span>
+      <span class="bottom-bar-total" id="barTotalAmount">Rp0</span>
+    </div>
+    <button class="btn-checkout" id="btnOpenCheckout" onclick="openCheckoutModal()" disabled>
+      Lanjutkan Order →
+    </button>
+  </div>
+
+  <!-- Modal Pilih Variasi / Subkategori -->
+  <div class="modal-overlay" id="subCategoryModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="subModalTitle">Pilih Variasi</span>
+        <button class="btn-close" onclick="closeSubModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="subModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn-confirm-pay" onclick="confirmSubCategorySelection()">+ TAMBAHKAN KE KERANJANG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Form Order Pelanggan -->
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">Form Pemesanan</span>
+        <button class="btn-close" onclick="closeCheckoutModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Rincian Items -->
+        <div class="form-group">
+          <label style="font-weight: bold; color: #0284c7; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
+          <div id="modalCartList"></div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <!-- Nama Pemesan -->
+        <div class="form-group">
+          <label for="custNameInput">NAMA PEMESAN *</label>
+          <input type="text" id="custNameInput" class="form-input" placeholder="Masukkan nama Anda..." required>
+        </div>
+
+        <!-- Metode Pembayaran -->
+        <div class="form-group">
+          <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
+          <select id="paymentMethodSelect" class="form-select">
+            <option value="Tunai">Tunai / COD</option>
+            <option value="QRIS">QRIS</option>
+            <option value="Transfer">Transfer Bank</option>
+          </select>
+        </div>
+
+        <!-- Alamat / Catatan -->
+        <div class="form-group">
+          <label for="orderNote">ALAMAT / CATATAN KHUSUS</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Kirim ke Jl. Melati No 12, Pedas, Tanpa Cuka..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="summary-line">
+          <span>TOTAL:</span>
+          <span id="modalTotalAmount">Rp0</span>
+        </div>
+        <button class="btn-confirm-pay" id="btnSubmitOrder" onclick="submitCatalogOrder()" style="background: #25D366; color: white;">
+          📲 KIRIM ORDER VIA WHATSAPP
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>

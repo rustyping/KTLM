@@ -31,14 +31,15 @@ function formatToWhatsappNumber(phoneStr) {
   return cleaned;
 }
 
+
 // Helper untuk pengecekan Kolom J (Katalog Y/N)
 function isVisibleInCatalog(p) {
-  // Ambil nilai dari kemungkinan nama header di Kolom J
-  const rawVal = p['Katalog'] || p['KATALOG'] || p['katalog'] || p['Katalog (Y/N)'] || p['Status Katalog'] || p['Tampil'] || p['katalog_status'] || '';
+  // Ambil nilai dari nama header ATAU indeks array Kolom J (indeks 9)
+  const rawVal = p['Katalog'] || p['KATALOG'] || p['katalog'] || p['Katalog (Y/N)'] || p['Status Katalog'] || p['Tampil'] || p['katalog_status'] || p[9] || '';
   const valJ = rawVal.toString().trim().toUpperCase();
 
-  // Jika Kolom J diisi 'N', 'NO', atau 'FALSE', langsung sembunyikan (return false)
-  if (valJ === 'N' || valJ === 'NO' || valJ === 'FALSE') {
+  // Jika Kolom J diisi 'N', 'NO', 'FALSE', atau '0', langsung sembunyikan (return false)
+  if (valJ === 'N' || valJ === 'NO' || valJ === 'FALSE' || valJ === '0') {
     return false;
   }
   

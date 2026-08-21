@@ -5,8 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Katalog Online</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Override Warna Khusus Katalog (Tanpa Mengganggu Tampilan Kasir) -->
+  <style>
+    .app-header {
+      background: #0284c7 !important; /* Biru Laut */
+    }
+    .cat-btn.active {
+      background: #0284c7 !important;
+      border-color: #0284c7 !important;
+    }
+    .btn-checkout {
+      background: #0284c7 !important;
+    }
+    .modal-header {
+      background: #0284c7 !important;
+    }
+    #subCategoryModal .btn-confirm-pay {
+      background: #0284c7 !important;
+    }
+  </style>
 </head>
-<body class="katalog-theme">
+<body>
 
   <!-- Header Katalog -->
   <header class="app-header">
@@ -24,7 +44,7 @@
 
     <!-- Grid Produk -->
     <div class="product-grid" id="productGrid">
-      <p style="grid-column: span 2; text-align: center; color: #64748b; padding: 20px;">Memuat menu...</p>
+      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
     </div>
   </div>
 
@@ -68,7 +88,7 @@
           <div id="modalCartList"></div>
         </div>
 
-        <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 15px 0;">
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
 
         <!-- Nama Pemesan -->
         <div class="form-group">
@@ -98,7 +118,7 @@
           <span>TOTAL:</span>
           <span id="modalTotalAmount">Rp0</span>
         </div>
-        <button class="btn-confirm-pay btn-wa" id="btnSubmitOrder" onclick="submitCatalogOrder()">
+        <button class="btn-confirm-pay" id="btnSubmitOrder" onclick="submitCatalogOrder()" style="background: #25D366; color: white;">
           📲 KIRIM ORDER VIA WHATSAPP
         </button>
       </div>

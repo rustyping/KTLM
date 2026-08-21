@@ -57,7 +57,7 @@ async function loadData() {
     allSubcategories = data.subkategori || [];
 
     renderCategories();
-    renderProducts(allProducts);
+    filterProducts();
     renderCustomers();
   } catch (err) {
     console.error(err);
@@ -78,7 +78,14 @@ function renderCustomers() {
 function renderCategories() {
   const catBar = document.getElementById("categoryBar");
   if (!catBar) return;
-  const categories = ["ALL", ...new Set(allProducts.map(p => p.kategori).filter(Boolean))];
+  
+  // Hanya ambil kategori dari produk yang Aktif (Kolom I)
+  const activeProducts = allProducts.filter(p => {
+    const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
+    return statusAktif === 'Y';
+  });
+
+  const categories = ["ALL", ...new Set(activeProducts.map(p => p.kategori).filter(Boolean))];
   catBar.innerHTML = categories.map(cat => 
     `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
   ).join('');
@@ -99,7 +106,10 @@ function renderProducts(products) {
 
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;
-    const imgUrl = fixImageUrl(p.gambar);
+    
+    // Pembacaan gambar dari Kolom K ('Link Gambar')
+    const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
+    const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
 
     if (posSettings.showImages) {
@@ -369,13 +379,19 @@ function filterCategory(cat, btn) {
 
 function filterProducts() {
   const searchInput = document.getElementById("searchInput");
-  if (!searchInput) return;
-  const keyword = searchInput.value.toLowerCase();
+  const keyword = searchInput ? searchInput.value.toLowerCase() : "";
+  
   let filtered = allProducts.filter(p => {
+    // Filter Kolom I (Aktif) -> Hanya tampilkan jika 'Y'
+    const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
+    const isAktif = statusAktif === 'Y';
+
     const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
     const matchSearch = p.nama.toLowerCase().includes(keyword);
-    return matchCat && matchSearch;
+    
+    return isAktif && matchCat && matchSearch;
   });
+
   renderProducts(filtered);
 }
 
@@ -716,7 +732,6 @@ function printReceipt(tx, note) {
     receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
     receiptText += `--------------------------------\n`;
 
-    // Perulangan items cart untuk format teks RawBT
     cart.forEach(i => {
       let itemLabel = i.product.nama;
       if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;

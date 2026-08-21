@@ -31,6 +31,12 @@ function formatToWhatsappNumber(phoneStr) {
   return cleaned;
 }
 
+// Helper untuk pengecekan Kolom J (Katalog Y/N)
+function isVisibleInCatalog(p) {
+  const valJ = (p['Katalog'] || p['Katalog (Y/N)'] || p['katalog'] || p[9] || 'Y').toString().trim().toUpperCase();
+  return valJ !== 'N'; // Sembunyikan hanya jika berisi 'N'
+}
+
 async function loadData() {
   try {
     const res = await fetch(API_URL);
@@ -57,10 +63,10 @@ function renderCategories() {
   const catBar = document.getElementById("categoryBar");
   if (!catBar) return;
 
-  // Hanya ambil kategori dari produk yang Aktif (Kolom I)
+  // Hanya ambil kategori dari produk yang Aktif (Kolom I) DAN bernilai 'Y' di Kolom J
   const activeProducts = allProducts.filter(p => {
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
-    return statusAktif === 'Y';
+    return statusAktif === 'Y' && isVisibleInCatalog(p);
   });
 
   const categories = ["ALL", ...new Set(activeProducts.map(p => p.kategori).filter(Boolean))];
@@ -343,14 +349,18 @@ function filterProducts() {
   const keyword = searchInput ? searchInput.value.toLowerCase() : "";
   
   let filtered = allProducts.filter(p => {
-    // Filter Kolom I (Aktif) -> Hanya tampilkan jika 'Y'
+    // 1. Cek Kolom I (Aktif) -> Harus 'Y'
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     const isAktif = statusAktif === 'Y';
 
+    // 2. Cek Kolom J (Katalog) -> Jangan 'N'
+    const isKatalog = isVisibleInCatalog(p);
+
+    // 3. Filter Kategori & Pencarian
     const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
     const matchSearch = p.nama.toLowerCase().includes(keyword);
     
-    return isAktif && matchCat && matchSearch;
+    return isAktif && isKatalog && matchCat && matchSearch;
   });
 
   renderProducts(filtered);

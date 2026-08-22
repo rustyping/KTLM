@@ -100,7 +100,7 @@ function renderProducts(products) {
   
   grid.innerHTML = products.map(p => {
     const totalQtyInCart = cart
-      .filter(c => String(c.product.id) === String(p.id))
+      .filter(c => c.product.id === p.id)
       .reduce((sum, i) => sum + i.qty, 0);
 
     const subCategories = getSubCategoriesForProduct(p);
@@ -164,7 +164,7 @@ function renderProducts(products) {
 
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
-  const product = allProducts.find(p => String(p.id) === String(productId));
+  const product = allProducts.find(p => p.id === productId);
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -173,13 +173,13 @@ function changeProductQtyInline(productId, delta, event) {
     if (delta > 0) {
       openSubCategoryModal(product, subCategories);
     } else {
-      const cartIdx = cart.map(i => String(i.product.id)).lastIndexOf(String(productId));
+      const cartIdx = cart.map(i => i.product.id).lastIndexOf(productId);
       if (cartIdx !== -1) {
         updateQtyInCartList(cartIdx, -1);
       }
     }
   } else {
-    const currentQty = cart.filter(c => String(c.product.id) === String(productId)).reduce((sum, i) => sum + i.qty, 0);
+    const currentQty = cart.filter(c => c.product.id === productId).reduce((sum, i) => sum + i.qty, 0);
     updateDirectQty(productId, currentQty + delta);
   }
 }
@@ -187,13 +187,13 @@ function changeProductQtyInline(productId, delta, event) {
 function getSubCategoriesForProduct(product) {
   if (!allSubcategories || allSubcategories.length === 0) return [];
   return allSubcategories.filter(s => 
-    (s.id_produk && String(s.id_produk).toLowerCase() === String(product.id).toLowerCase()) ||
-    (s.produk && String(s.produk).toLowerCase() === String(product.nama).toLowerCase())
+    (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
+    (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
   );
 }
 
 function handleProductClick(id, event) {
-  const product = allProducts.find(p => String(p.id) === String(id));
+  const product = allProducts.find(p => p.id === id);
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -206,7 +206,7 @@ function handleProductClick(id, event) {
 }
 
 function onQtyDirectChange(productId, val) {
-  const product = allProducts.find(p => String(p.id) === String(productId));
+  const product = allProducts.find(p => p.id === productId);
   if (!product) return;
 
   const newQty = parseInt(val) || 0;
@@ -354,7 +354,7 @@ function confirmSubCategorySelection() {
 }
 
 function addToCart(product, qty, subVariant) {
-  const existing = cart.find(item => String(item.product.id) === String(product.id) && item.subVariant === subVariant);
+  const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
   if (existing) {
     existing.qty += qty;
   } else {
@@ -365,14 +365,14 @@ function addToCart(product, qty, subVariant) {
 }
 
 function updateDirectQty(productId, newQty) {
-  const existingIndex = cart.findIndex(item => String(item.product.id) === String(productId));
+  const existingIndex = cart.findIndex(item => item.product.id === productId);
   if (newQty <= 0) {
     if (existingIndex !== -1) cart.splice(existingIndex, 1);
   } else {
     if (existingIndex !== -1) {
       cart[existingIndex].qty = newQty;
     } else {
-      const product = allProducts.find(p => String(p.id) === String(productId));
+      const product = allProducts.find(p => p.id === productId);
       if (product) cart.push({ product: product, qty: newQty, subVariant: "" });
     }
   }

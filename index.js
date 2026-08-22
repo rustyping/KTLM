@@ -31,19 +31,13 @@ function formatToWhatsappNumber(phoneStr) {
   return cleaned;
 }
 
-
 // Helper untuk memfilter produk yang tampil di Web Katalog
 function isVisibleInCatalog(p) {
   if (!p) return false;
-  
-  // Ambil nilai dari properti 'katalog'
   const statusKatalog = (p.katalog || "Y").toString().trim().toUpperCase();
-  
-  // Jika Kolom J bernilai N, sembunyikan dari Web Katalog
   if (statusKatalog === "N" || statusKatalog === "NO" || statusKatalog === "FALSE") {
     return false;
   }
-  
   return true;
 }
 
@@ -73,7 +67,6 @@ function renderCategories() {
   const catBar = document.getElementById("categoryBar");
   if (!catBar) return;
 
-  // Hanya ambil kategori dari produk yang Aktif (Kolom I) DAN bernilai 'Y' di Kolom J
   const activeProducts = allProducts.filter(p => {
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     return statusAktif === 'Y' && isVisibleInCatalog(p);
@@ -101,7 +94,6 @@ function renderProducts(products) {
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;
 
-    // Pembacaan Gambar dari Kolom K ('Link Gambar')
     const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
     const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
@@ -121,16 +113,40 @@ function renderProducts(products) {
 
           ${isSelected ? `
             <div class="qty-badge-inline" onclick="event.stopPropagation()">
+              <button type="button" class="btn-qty-card" onclick="changeQtyCard('${p.id}', -1)">-</button>
               <input type="number" min="0" class="qty-input-inline" 
                      value="${totalQtyInCart}" 
                      onchange="onQtyDirectChange('${p.id}', this.value)"
                      onfocus="this.select()">
+              <button type="button" class="btn-qty-card" onclick="changeQtyCard('${p.id}', 1)">+</button>
             </div>
           ` : ''}
         </div>
       </div>
     `;
   }).join('');
+}
+
+function changeQtyCard(productId, delta) {
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  const subCategories = getSubCategoriesForProduct(product);
+
+  if (subCategories.length > 0) {
+    if (delta > 0) {
+      openSubCategoryModal(product, subCategories);
+    } else {
+      const lastIndex = cart.map(c => c.product.id).lastIndexOf(productId);
+      if (lastIndex !== -1) {
+        updateQtyInCartList(lastIndex, -1);
+      }
+    }
+  } else {
+    const existing = cart.find(c => c.product.id === productId);
+    const currentQty = existing ? existing.qty : 0;
+    updateDirectQty(productId, currentQty + delta);
+  }
 }
 
 function getSubCategoriesForProduct(product) {
@@ -359,14 +375,9 @@ function filterProducts() {
   const keyword = searchInput ? searchInput.value.toLowerCase() : "";
   
   let filtered = allProducts.filter(p => {
-    // 1. Cek Kolom I (Aktif) -> Harus 'Y'
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     const isAktif = statusAktif === 'Y';
-
-    // 2. Cek Kolom J (Katalog) -> Jangan 'N'
     const isKatalog = isVisibleInCatalog(p);
-
-    // 3. Filter Kategori & Pencarian
     const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
     const matchSearch = p.nama.toLowerCase().includes(keyword);
     
@@ -446,7 +457,6 @@ async function submitCatalogOrder() {
   const totalBelanja = cart.reduce((sum, i) => sum + ((i.product.harga || 0) * i.qty), 0);
   const totalHpp = cart.reduce((sum, i) => sum + ((i.product.hpp || 0) * i.qty), 0);
   
-  // Format rincian produk termasuk variasi
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
     if (i.subVariant) nameStr += ` (${i.subVariant})`;
@@ -471,7 +481,6 @@ async function submitCatalogOrder() {
   };
 
   try {
-    // 1. Simpan ke Google Sheet dengan status PENDING
     await fetch(API_URL, {
       method: "POST",
       mode: "no-cors",
@@ -479,11 +488,9 @@ async function submitCatalogOrder() {
       body: JSON.stringify(payload)
     });
 
-    // 2. Ambil Nomor WA dari Sheet Data (storeConfig.WA)
     const targetWaRaw = storeConfig.WA || "085838976880";
     const targetWaFormatted = formatToWhatsappNumber(targetWaRaw);
 
-    // 3. Susun Pesan WhatsApp
     let waText = `*PESANAN BARU - KATALOG ONLINE*\n`;
     waText += `----------------------------------\n`;
     waText += `*No Invoice:* ${invoiceNo}\n`;
@@ -504,7 +511,6 @@ async function submitCatalogOrder() {
     waText += `*TOTAL: Rp${totalBelanja.toLocaleString('id-ID')}*\n\n`;
     waText += `Halo, saya ingin memesan menu di atas. Mohon diproses, terima kasih!`;
 
-    // 4. Redirect ke WhatsApp
     const waUrl = `https://wa.me/${targetWaFormatted}?text=${encodeURIComponent(waText)}`;
     window.location.href = waUrl;
 

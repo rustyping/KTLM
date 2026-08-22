@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Katalog Online</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
   
   <!-- Override Warna Khusus Katalog (Tanpa Mengganggu Tampilan Kasir) -->
   <style>
@@ -23,6 +23,20 @@
     }
     #subCategoryModal .btn-confirm-pay {
       background: #0284c7 !important;
+    }
+    /* Override Tombol - + Kapsul agar berwarna Biru Katalog */
+    .qty-badge-inline {
+      border-color: #0284c7 !important;
+      background: #f0f9ff !important;
+    }
+    .btn-qty-card, .btn-qty-mini, .btn-counter-mini {
+      background: #0284c7 !important;
+    }
+    .btn-qty-card:active, .btn-qty-mini:active, .btn-counter-mini:active {
+      background-color: #0369a1 !important;
+    }
+    .qty-input-inline, .counter-val {
+      color: #0369a1 !important;
     }
   </style>
 </head>
@@ -125,6 +139,6 @@
     </div>
   </div>
 
-  <script src="index.js"></script>
+  <script src="index.js?v=2"></script>
 </body>
 </html>

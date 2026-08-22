@@ -216,3 +216,17 @@ input:checked + .slider:before { transform: translateX(20px); }
   from { transform: translateY(100px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+
+/* Sembunyikan panah atas-bawah bawaan browser di Chrome, Safari, Edge, Opera */
+.qty-input-inline::-webkit-outer-spin-button,
+.qty-input-inline::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Sembunyikan panah bawaan di Firefox & Browser Standar */
+.qty-input-inline[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

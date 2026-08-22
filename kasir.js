@@ -126,10 +126,12 @@ function renderProducts(products) {
 
             ${isSelected ? `
               <div class="qty-badge-inline" onclick="event.stopPropagation()">
+                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
                 <input type="number" min="0" class="qty-input-inline" 
                        value="${totalQtyInCart}" 
                        onchange="onQtyDirectChange('${p.id}', this.value)"
                        onfocus="this.select()">
+                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
               </div>
             ` : ''}
           </div>
@@ -146,16 +148,40 @@ function renderProducts(products) {
           
           ${isSelected ? `
             <div class="qty-badge-inline" onclick="event.stopPropagation()">
+              <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
               <input type="number" min="0" class="qty-input-inline" 
                      value="${totalQtyInCart}" 
                      onchange="onQtyDirectChange('${p.id}', this.value)"
                      onfocus="this.select()">
+              <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
             </div>
           ` : ''}
         </div>
       `;
     }
   }).join('');
+}
+
+function changeProductQtyInline(productId, delta, event) {
+  if (event) event.stopPropagation();
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  const subCategories = getSubCategoriesForProduct(product);
+
+  if (subCategories.length > 0) {
+    if (delta > 0) {
+      openSubCategoryModal(product, subCategories);
+    } else {
+      const cartIdx = cart.map(i => i.product.id).lastIndexOf(productId);
+      if (cartIdx !== -1) {
+        updateQtyInCartList(cartIdx, -1);
+      }
+    }
+  } else {
+    const currentQty = cart.filter(c => c.product.id === productId).reduce((sum, i) => sum + i.qty, 0);
+    updateDirectQty(productId, currentQty + delta);
+  }
 }
 
 function getSubCategoriesForProduct(product) {
@@ -476,7 +502,6 @@ function addQuickNote(text) {
   }
 }
 
-/* PROSES PEMBAYARAN KASIR LANGSUNG */
 async function processPayment() {
   if (cart.length === 0) return;
 
@@ -552,7 +577,6 @@ async function processPayment() {
   }
 }
 
-/* FUNGSI PRINT STRUK KASIR */
 function printReceipt(tx, note) {
   const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
   const storeAddr = posSettings.address || storeConfig.Alamat || '';
@@ -618,7 +642,6 @@ function printReceipt(tx, note) {
   }
 }
 
-/* MANAGEMENT PESANAN MASUK KATALOG */
 async function checkPendingOrders() {
   try {
     const res = await fetch(`${API_URL}?action=getPendingOrders`);
@@ -678,7 +701,6 @@ async function processAndPrintCatalogOrder(rowNum) {
   const order = pendingOrdersArr.find(o => o.rowNum === rowNum);
   if (!order) return;
 
-  // Simpan pesanan katalog ke transaksi terakhir
   const catalogPayload = { ...order, isCatalog: true };
   saveLastTransaction(catalogPayload);
 
@@ -791,7 +813,6 @@ function printReceiptFromCatalog(order) {
   }
 }
 
-/* FUNGSI PENDUKUNG TOAST REPRINT */
 function saveLastTransaction(payloadData) {
   lastTransaction = payloadData;
   localStorage.setItem("lastPOSOrder", JSON.stringify(payloadData));

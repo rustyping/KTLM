@@ -50,7 +50,7 @@ async function loadData() {
     allSubcategories = data.subkategori || [];
 
     // Header Nama Toko
-    const titleEl = document.getElementById("storeTitleHeader");
+    //const titleEl = document.getElementById("storeTitleHeader");
     if (titleEl && storeConfig.Header) {
       titleEl.innerText = storeConfig.Header;
     }

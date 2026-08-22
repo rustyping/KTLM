@@ -10,7 +10,7 @@ let pendingOrdersArr = [];
 let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
-let lastTransaction = null; // Menyimpan transaksi terakhir
+let lastTransaction = null;
 
 let posSettings = {
   showImages: true,
@@ -21,7 +21,6 @@ let posSettings = {
   waPhone: ''
 };
 
-// Helper Format Rupiah
 function formatRupiah(angka) {
   return (angka || 0).toLocaleString('id-ID');
 }
@@ -508,6 +507,7 @@ async function processPayment() {
   }
 
   const payload = {
+    isCatalog: false,
     noInvoice: invoiceNo,
     waktu: waktuTx,
     customerName: selectedCustomer,
@@ -520,7 +520,7 @@ async function processPayment() {
     kasir: "Kasir",
     sumber: "Kasir",
     status: "SELESAI",
-    cartItems: JSON.parse(JSON.stringify(cart)), // Salin item agar tidak hilang saat cart dikosongkan
+    cartItems: JSON.parse(JSON.stringify(cart)),
     note: noteValue
   };
 
@@ -532,9 +532,7 @@ async function processPayment() {
       body: JSON.stringify(payload)
     });
 
-    // Panggil simpan transaksi terakhir agar bubble cetak ulang muncul
     saveLastTransaction(payload);
-
     printReceipt(payload, noteValue);
 
     alert("Transaksi Berhasil Disimpan!");
@@ -680,6 +678,10 @@ async function processAndPrintCatalogOrder(rowNum) {
   const order = pendingOrdersArr.find(o => o.rowNum === rowNum);
   if (!order) return;
 
+  // Simpan pesanan katalog ke transaksi terakhir
+  const catalogPayload = { ...order, isCatalog: true };
+  saveLastTransaction(catalogPayload);
+
   printReceiptFromCatalog(order);
 
   try {
@@ -812,7 +814,12 @@ function cetakUlangStrukTerakhir() {
     alert("Belum ada data transaksi terakhir.");
     return;
   }
-  printReceipt(data, data.note);
+  
+  if (data.isCatalog) {
+    printReceiptFromCatalog(data);
+  } else {
+    printReceipt(data, data.note);
+  }
 }
 
 // Inisialisasi

@@ -785,3 +785,41 @@ function printReceipt(tx, note) {
 loadData();
 setInterval(checkPendingOrders, 15000);
 checkPendingOrders();
+
+
+// Variabel penyimpan transaksi terakhir
+let lastTransaction = null;
+
+// Fungsi untuk menyimpan transaksi & menampilkan bubble
+function saveLastTransaction(payloadData) {
+  lastTransaction = payloadData;
+  localStorage.setItem("lastPOSOrder", JSON.stringify(payloadData));
+  showReprintToast();
+}
+
+function showReprintToast() {
+  const toast = document.getElementById("toastReprint");
+  if (toast) toast.style.display = "flex";
+}
+
+function hideReprintToast() {
+  const toast = document.getElementById("toastReprint");
+  if (toast) toast.style.display = "none";
+}
+
+// Fungsi Panggil Cetak Ulang
+function cetakUlangStrukTerakhir() {
+  const data = lastTransaction || JSON.parse(localStorage.getItem("lastPOSOrder"));
+  if (!data) {
+    alert("Belum ada data transaksi terakhir.");
+    return;
+  }
+
+  // Panggil fungsi pencetakan struk kasir yang sudah ada
+  // Contoh: printReceipt(data);
+  if (typeof printReceipt === "function") {
+    printReceipt(data);
+  } else {
+    window.print(); // Fallback print biasa
+  }
+}

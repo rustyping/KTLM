@@ -1,4 +1,135 @@
-/* Container Utama Produk (Grid) */
+/* ==========================================
+   1. RESET & GLOBAL STYLES
+   ========================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: #f4f6f8;
+  color: #212529;
+  padding-bottom: 90px; /* Space agar tidak tertutup bar bawah */
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+/* ==========================================
+   2. HEADER & APP BAR
+   ========================================== */
+.header {
+  background: #2e7d32;
+  color: #ffffff;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #ffffff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #d32f2f;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+/* ==========================================
+   3. SEARCH & CATEGORY BAR
+   ========================================== */
+.search-container {
+  margin: 12px 0 8px 0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  background: #ffffff;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.search-input:focus {
+  border-color: #2e7d32;
+}
+
+.category-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.category-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.cat-btn {
+  white-space: nowrap;
+  padding: 6px 14px;
+  border: 1px solid #c8e6c9;
+  background: #ffffff;
+  color: #2e7d32;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cat-btn.active {
+  background: #2e7d32;
+  color: #ffffff;
+  border-color: #2e7d32;
+}
+
+/* ==========================================
+   4. PRODUCT GRID & CARDS
+   ========================================== */
 #productGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -6,7 +137,6 @@
   align-items: stretch;
 }
 
-/* Card Produk Utama */
 .product-card {
   background: #ffffff;
   border: 1px solid #e0e0e0;
@@ -31,7 +161,6 @@
   box-shadow: 0 2px 8px rgba(46, 125, 50, 0.15);
 }
 
-/* Wrapper & Gambar Produk */
 .product-img-wrapper {
   position: relative;
   width: 100%;
@@ -59,7 +188,6 @@
   border-radius: 4px;
 }
 
-/* Detail & Informasi Produk */
 .product-details {
   padding: 10px;
   display: flex;
@@ -90,7 +218,6 @@
   color: #2e7d32;
 }
 
-/* Styling Tombol Inline - + */
 .qty-badge-inline {
   display: flex;
   align-items: center;
@@ -139,7 +266,6 @@
   padding: 0;
 }
 
-/* Sembunyikan spin button default browser */
 .qty-input-inline::-webkit-outer-spin-button,
 .qty-input-inline::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -147,4 +273,95 @@
 }
 .qty-input-inline[type=number] {
   -moz-appearance: textfield;
+}
+
+/* Mode Tanpa Gambar (Compact) */
+.product-card.compact {
+  padding: 10px;
+  min-height: 100px;
+}
+.compact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.variant-tag-inline {
+  font-size: 10px;
+  color: #2e7d32;
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+/* ==========================================
+   5. BOTTOM CART BAR
+   ========================================== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 1px solid #e0e0e0;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 99;
+}
+
+.cart-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-item-count {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.cart-total-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.btn-checkout {
+  background: #2e7d32;
+  color: #ffffff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-checkout:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   6. MODAL STYLES
+   ========================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #ffffff;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  max-height: 85vh;
+  overflow-y: auto;
 }

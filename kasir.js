@@ -99,9 +99,10 @@ function renderProducts(products) {
   }
   
   grid.innerHTML = products.map(p => {
-    const totalQtyInCart = cart
-      .filter(c => c.product.id === p.id)
-      .reduce((sum, i) => sum + i.qty, 0);
+// SESUDAHNYA (Aman untuk String maupun Number):
+const totalQtyInCart = cart
+  .filter(c => String(c.product.id) === String(p.id))
+  .reduce((sum, i) => sum + i.qty, 0);
 
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;
@@ -164,7 +165,8 @@ function renderProducts(products) {
 
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
-  const product = allProducts.find(p => p.id === productId);
+  // Gunakan String() saat mencocokkan ID
+  const product = allProducts.find(p => String(p.id) === String(productId));
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -206,7 +208,8 @@ function handleProductClick(id, event) {
 }
 
 function onQtyDirectChange(productId, val) {
-  const product = allProducts.find(p => p.id === productId);
+  // Gunakan String() saat mencocokkan ID
+  const product = allProducts.find(p => String(p.id) === String(productId));
   if (!product) return;
 
   const newQty = parseInt(val) || 0;

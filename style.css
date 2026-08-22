@@ -1,56 +1,145 @@
-/* Styling Tombol - + dan Jumlah Qty pada Kartu Produk */
+/* Container Utama Produk (Grid) */
+#productGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Card Produk Utama */
+.product-card {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.product-card:active {
+  transform: scale(0.98);
+}
+
 .product-card.has-selected {
   border: 2px solid #2e7d32 !important;
   background-color: #f1f8e9 !important;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.15);
 }
 
+/* Wrapper & Gambar Produk */
+.product-img-wrapper {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  background-color: #f8f9fa;
+  overflow: hidden;
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.variant-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(46, 125, 50, 0.9);
+  color: #fff;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Detail & Informasi Produk */
+.product-details {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+.product-info-text {
+  margin-bottom: 6px;
+}
+
+.product-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.product-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+/* Styling Tombol Inline - + */
 .qty-badge-inline {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  margin-top: 8px;
+  margin-top: 6px;
   background: #ffffff;
   border: 1px solid #a5d6a7;
   border-radius: 6px;
-  padding: 3px 6px;
+  padding: 2px 4px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .btn-qty-card {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background-color: #2e7d32;
   color: #ffffff;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  user-select: none;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .btn-qty-card:active {
   background-color: #1b5e20;
-  transform: scale(0.95);
 }
 
 .qty-input-inline {
-  width: 40px;
-  height: 30px;
+  width: 100%;
+  height: 28px;
   text-align: center;
   font-weight: bold;
-  font-size: 15px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
   outline: none;
+  padding: 0;
 }
 
-/* Hilangkan panah default pada input number */
+/* Sembunyikan spin button default browser */
 .qty-input-inline::-webkit-outer-spin-button,
 .qty-input-inline::-webkit-inner-spin-button {
   -webkit-appearance: none;

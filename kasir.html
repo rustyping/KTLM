@@ -194,5 +194,14 @@
   <div id="receipt-print"></div>
 
   <script src="kasir.js"></script>
+  
+  <!-- Notification Bubble Cetak Ulang -->
+  <div id="toastReprint" class="toast-reprint" style="display: none;">
+    <span>✅ Transaksi Berhasil</span>
+    <button type="button" class="btn-reprint" onclick="cetakUlangStrukTerakhir()">🖨️ Cetak Ulang Struk</button>
+    <button type="button" class="btn-close-toast" onclick="hideReprintToast()">✕</button>
+  </div>
+
+  
 </body>
 </html>

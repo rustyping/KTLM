@@ -10,6 +10,7 @@ let pendingOrdersArr = [];
 let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
+let lastTransaction = null; // Menyimpan transaksi terakhir
 
 let posSettings = {
   showImages: true,
@@ -79,7 +80,6 @@ function renderCategories() {
   const catBar = document.getElementById("categoryBar");
   if (!catBar) return;
   
-  // Hanya ambil kategori dari produk yang Aktif (Kolom I)
   const activeProducts = allProducts.filter(p => {
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     return statusAktif === 'Y';
@@ -107,7 +107,6 @@ function renderProducts(products) {
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;
     
-    // Pembacaan gambar dari Kolom K ('Link Gambar')
     const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
     const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
@@ -382,7 +381,6 @@ function filterProducts() {
   const keyword = searchInput ? searchInput.value.toLowerCase() : "";
   
   let filtered = allProducts.filter(p => {
-    // Filter Kolom I (Aktif) -> Hanya tampilkan jika 'Y'
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     const isAktif = statusAktif === 'Y';
 
@@ -522,7 +520,7 @@ async function processPayment() {
     kasir: "Kasir",
     sumber: "Kasir",
     status: "SELESAI",
-    cartItems: [...cart], // Simpan array item agar tidak hilang saat cetak ulang
+    cartItems: JSON.parse(JSON.stringify(cart)), // Salin item agar tidak hilang saat cart dikosongkan
     note: noteValue
   };
 
@@ -534,7 +532,7 @@ async function processPayment() {
       body: JSON.stringify(payload)
     });
 
-    // Simpan transaksi terakhir dan tampilkan bubble notification
+    // Panggil simpan transaksi terakhir agar bubble cetak ulang muncul
     saveLastTransaction(payload);
 
     printReceipt(payload, noteValue);
@@ -556,7 +554,71 @@ async function processPayment() {
   }
 }
 
+/* FUNGSI PRINT STRUK KASIR */
+function printReceipt(tx, note) {
+  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
+  const storeAddr = posSettings.address || storeConfig.Alamat || '';
+  const storeWa = posSettings.waPhone || storeConfig.WA || '';
+  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
 
+  const itemsToPrint = (tx && tx.cartItems && tx.cartItems.length > 0) ? tx.cartItems : cart;
+  const noteToPrint = note || (tx ? tx.note : "") || "";
+
+  if (posSettings.printMode === 'rawbt') {
+    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
+    receiptText += `--------------------------------\n`;
+
+    itemsToPrint.forEach(i => {
+      let itemLabel = i.product.nama;
+      if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
+      let itemTotal = i.qty * (i.product.harga || 0);
+      receiptText += `${itemLabel}\n  ${i.qty} x Rp${formatRupiah(i.product.harga)} = Rp${formatRupiah(itemTotal)}\n`;
+    });
+
+    receiptText += `--------------------------------\n`;
+    if (noteToPrint) receiptText += `Note: ${noteToPrint}\n--------------------------------\n`;
+    receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${storeBottom}\n\n\n`;
+
+    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+    window.location.href = intentUrl;
+  } else {
+    const receipt = document.getElementById("receipt-print");
+    if (!receipt) return;
+    receipt.style.display = "block";
+    receipt.innerHTML = `
+      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
+      <div style="text-align:center;">${storeAddr}</div>
+      <div style="text-align:center;">WA: ${storeWa}</div>
+      ----------------------------------<br>
+      No: ${tx.noInvoice}<br>
+      Tgl: ${tx.waktu}<br>
+      Cust: ${tx.customerName}<br>
+      Bayar: ${tx.jenisPembayaran}<br>
+      ----------------------------------<br>
+      ${itemsToPrint.map(i => `
+        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
+          <span>Rp${formatRupiah(i.qty * (i.product.harga || 0))}</span>
+        </div>
+      `).join('')}
+      ----------------------------------<br>
+      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteToPrint}</div>----------------------------------<br>` : ''}
+      <div style="display:flex; justify-content:space-between; font-weight:bold;">
+        <span>TOTAL:</span>
+        <span>Rp${formatRupiah(tx.totalBelanja)}</span>
+      </div>
+      ----------------------------------<br>
+      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
+    `;
+    window.print();
+    receipt.style.display = "none";
+  }
+}
 
 /* MANAGEMENT PESANAN MASUK KATALOG */
 async function checkPendingOrders() {
@@ -727,81 +789,7 @@ function printReceiptFromCatalog(order) {
   }
 }
 
-function printReceipt(tx, note) {
-  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-  const storeAddr = posSettings.address || storeConfig.Alamat || '';
-  const storeWa = posSettings.waPhone || storeConfig.WA || '';
-  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
-
-  // Prioritaskan daftar item dari payload transaksi jika cart sudah dikosongkan
-  const itemsToPrint = (tx && tx.cartItems && tx.cartItems.length > 0) ? tx.cartItems : cart;
-  const noteToPrint = note || (tx ? tx.note : "") || "";
-
-  if (posSettings.printMode === 'rawbt') {
-    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
-    receiptText += `--------------------------------\n`;
-    receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
-    receiptText += `--------------------------------\n`;
-
-    itemsToPrint.forEach(i => {
-      let itemLabel = i.product.nama;
-      if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
-      let itemTotal = i.qty * (i.product.harga || 0);
-      receiptText += `${itemLabel}\n  ${i.qty} x Rp${formatRupiah(i.product.harga)} = Rp${formatRupiah(itemTotal)}\n`;
-    });
-
-    receiptText += `--------------------------------\n`;
-    if (noteToPrint) receiptText += `Note: ${noteToPrint}\n--------------------------------\n`;
-    receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
-    receiptText += `--------------------------------\n`;
-    receiptText += `${storeBottom}\n\n\n`;
-
-    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-    window.location.href = intentUrl;
-  } else {
-    const receipt = document.getElementById("receipt-print");
-    if (!receipt) return;
-    receipt.style.display = "block";
-    receipt.innerHTML = `
-      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
-      <div style="text-align:center;">${storeAddr}</div>
-      <div style="text-align:center;">WA: ${storeWa}</div>
-      ----------------------------------<br>
-      No: ${tx.noInvoice}<br>
-      Tgl: ${tx.waktu}<br>
-      Cust: ${tx.customerName}<br>
-      Bayar: ${tx.jenisPembayaran}<br>
-      ----------------------------------<br>
-      ${itemsToPrint.map(i => `
-        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
-        <div style="display:flex; justify-content:space-between;">
-          <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
-          <span>Rp${formatRupiah(i.qty * (i.product.harga || 0))}</span>
-        </div>
-      `).join('')}
-      ----------------------------------<br>
-      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteToPrint}</div>----------------------------------<br>` : ''}
-      <div style="display:flex; justify-content:space-between; font-weight:bold;">
-        <span>TOTAL:</span>
-        <span>Rp${formatRupiah(tx.totalBelanja)}</span>
-      </div>
-      ----------------------------------<br>
-      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
-    `;
-    window.print();
-    receipt.style.display = "none";
-  }
-}
-
-loadData();
-setInterval(checkPendingOrders, 15000);
-checkPendingOrders();
-
-
-// Variabel penyimpan transaksi terakhir
-let lastTransaction = null;
-
-// Fungsi untuk menyimpan transaksi & menampilkan bubble
+/* FUNGSI PENDUKUNG TOAST REPRINT */
 function saveLastTransaction(payloadData) {
   lastTransaction = payloadData;
   localStorage.setItem("lastPOSOrder", JSON.stringify(payloadData));
@@ -818,19 +806,16 @@ function hideReprintToast() {
   if (toast) toast.style.display = "none";
 }
 
-// Fungsi Panggil Cetak Ulang
 function cetakUlangStrukTerakhir() {
   const data = lastTransaction || JSON.parse(localStorage.getItem("lastPOSOrder"));
   if (!data) {
     alert("Belum ada data transaksi terakhir.");
     return;
   }
-
-  // Panggil fungsi pencetakan struk kasir yang sudah ada
-  // Contoh: printReceipt(data);
-  if (typeof printReceipt === "function") {
-    printReceipt(data);
-  } else {
-    window.print(); // Fallback print biasa
-  }
+  printReceipt(data, data.note);
 }
+
+// Inisialisasi
+loadData();
+setInterval(checkPendingOrders, 15000);
+checkPendingOrders();

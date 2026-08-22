@@ -521,7 +521,9 @@ async function processPayment() {
     kembalian: 0,
     kasir: "Kasir",
     sumber: "Kasir",
-    status: "SELESAI"
+    status: "SELESAI",
+    cartItems: [...cart], // Simpan array item agar tidak hilang saat cetak ulang
+    note: noteValue
   };
 
   try {
@@ -531,6 +533,9 @@ async function processPayment() {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload)
     });
+
+    // Simpan transaksi terakhir dan tampilkan bubble notification
+    saveLastTransaction(payload);
 
     printReceipt(payload, noteValue);
 
@@ -550,6 +555,8 @@ async function processPayment() {
     }
   }
 }
+
+
 
 /* MANAGEMENT PESANAN MASUK KATALOG */
 async function checkPendingOrders() {
@@ -726,13 +733,17 @@ function printReceipt(tx, note) {
   const storeWa = posSettings.waPhone || storeConfig.WA || '';
   const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
 
+  // Prioritaskan daftar item dari payload transaksi jika cart sudah dikosongkan
+  const itemsToPrint = (tx && tx.cartItems && tx.cartItems.length > 0) ? tx.cartItems : cart;
+  const noteToPrint = note || (tx ? tx.note : "") || "";
+
   if (posSettings.printMode === 'rawbt') {
     let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
     receiptText += `--------------------------------\n`;
     receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
     receiptText += `--------------------------------\n`;
 
-    cart.forEach(i => {
+    itemsToPrint.forEach(i => {
       let itemLabel = i.product.nama;
       if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
       let itemTotal = i.qty * (i.product.harga || 0);
@@ -740,7 +751,7 @@ function printReceipt(tx, note) {
     });
 
     receiptText += `--------------------------------\n`;
-    if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
+    if (noteToPrint) receiptText += `Note: ${noteToPrint}\n--------------------------------\n`;
     receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
     receiptText += `--------------------------------\n`;
     receiptText += `${storeBottom}\n\n\n`;
@@ -761,7 +772,7 @@ function printReceipt(tx, note) {
       Cust: ${tx.customerName}<br>
       Bayar: ${tx.jenisPembayaran}<br>
       ----------------------------------<br>
-      ${cart.map(i => `
+      ${itemsToPrint.map(i => `
         <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
         <div style="display:flex; justify-content:space-between;">
           <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
@@ -769,7 +780,7 @@ function printReceipt(tx, note) {
         </div>
       `).join('')}
       ----------------------------------<br>
-      ${note ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${note}</div>----------------------------------<br>` : ''}
+      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteToPrint}</div>----------------------------------<br>` : ''}
       <div style="display:flex; justify-content:space-between; font-weight:bold;">
         <span>TOTAL:</span>
         <span>Rp${formatRupiah(tx.totalBelanja)}</span>

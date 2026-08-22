@@ -43,56 +43,59 @@ body { background-color: #f4f6f8; color: #212529; padding-bottom: 95px; -webkit-
 .product-title { font-size: 13px; font-weight: 700; color: #212529; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 2px; line-height: 1.25; }
 .product-price { font-size: 13px; font-weight: 800; color: #2e7d32; }
 
-/* Tombol Quantity Inline (- +) Modern Pill-style */
-.qty-badge-inline { 
-  display: flex;
+/* Container Kapsul (- 1 +) Modern */
+.qty-badge-inline, .qty-controls { 
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 3px;
-  background: #f1f8e9;
-  border: 1.5px solid #a5d6a7;
-  border-radius: 20px;
-  padding: 2px;
+  background: #ffffff;
+  border: 1.5px solid #2e7d32;
+  border-radius: 25px;
+  padding: 2px 4px;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);
+  gap: 4px;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(46, 125, 50, 0.08);
 }
 
-.btn-qty-card {
-  width: 26px;
-  height: 26px;
-  background-color: #2e7d32;
-  color: #ffffff;
-  border: none;
-  border-radius: 50%;
-  font-weight: 700;
-  font-size: 15px;
-  line-height: 1;
+/* Tombol Bulat Min (-) dan Plus (+) */
+.btn-qty-card, .btn-qty-mini, .btn-counter-mini {
+  width: 28px !important;
+  height: 28px !important;
+  background: #2e7d32 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.25);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   transition: transform 0.1s ease, background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn-qty-card:active {
-  transform: scale(0.88);
-  background-color: #1b5e20;
+/* Efek Tekan Jari (Membal/Empuk) */
+.btn-qty-card:active, .btn-qty-mini:active, .btn-counter-mini:active {
+  transform: scale(0.85);
+  background-color: #1b5e20 !important;
 }
 
-.qty-input-inline { 
-  width: 24px; 
-  height: 26px; 
-  border: none; 
-  background: transparent; 
-  text-align: center; 
-  font-size: 13px; 
-  font-weight: 800; 
-  color: #1b5e20; 
-  outline: none; 
-  padding: 0;
+/* Angka Jumlah di Tengah */
+.qty-input-inline, .counter-val { 
+  width: 26px !important; 
+  height: 28px !important; 
+  border: none !important; 
+  background: transparent !important; 
+  text-align: center !important; 
+  font-size: 14px !important; 
+  font-weight: 800 !important; 
+  color: #1b5e20 !important; 
+  outline: none !important; 
+  padding: 0 !important;
 }
 
 /* Compact Layout Styling */

@@ -49,11 +49,13 @@ async function loadData() {
     allProducts = data.products || [];
     allSubcategories = data.subkategori || [];
 
-    // Header Nama Toko
-    //const titleEl = document.getElementById("storeTitleHeader");
+    // Header Nama Toko di-nonaktifkan agar tetap menggunakan teks di HTML
+    /* 
+    const titleEl = document.getElementById("storeTitleHeader");
     if (titleEl && storeConfig.Header) {
       titleEl.innerText = storeConfig.Header;
     }
+    */
 
     renderCategories();
     filterProducts();

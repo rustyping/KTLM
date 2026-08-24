@@ -260,37 +260,36 @@ function changeQtyCard(productId, delta) {
 }
 
 /* MODAL DETAIL PRODUK (POPUP KLIK GAMBAR) */
+// Modal Detail Produk (Gambar 2: Mengisi Keterangan Kolom F)
 function openProductDetailModal(product) {
   currentDetailProduct = product;
   const existingItem = cart.find(function(item) { return item.product.id === product.id; });
   currentDetailQty = existingItem ? existingItem.qty : 1;
 
+  // Header Modal (Judul Utama)
   const titleEl = document.getElementById("detailModalTitle");
   if (titleEl) titleEl.innerText = product.nama;
 
-  // 1. NAMA MENU
-  const nameEl = document.getElementById("detailModalName");
-  if (nameEl) nameEl.innerText = product.nama;
-
-  // 2. KETERANGAN BARU (Diambil dari Kolom F / index 5 / property keterangan)
-  const descEl = document.getElementById("detailModalDesc");
-  const descText = product.keterangan || product.Keterangan || product['Keterangan'] || product.deskripsi || product[5] || "";
-  if (descEl) descEl.innerText = descText;
-
-  // 3. HARGA
-  const priceEl = document.getElementById("detailModalPrice");
-  if (priceEl) priceEl.innerText = "Rp" + (product.harga || 0).toLocaleString('id-ID');
-
+  // Gambar Produk
   const imgEl = document.getElementById("detailModalImg");
   if (imgEl) {
     const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
     imgEl.src = fixImageUrl(rawImgUrl);
   }
 
+  // Teks Dibawah Gambar (Gambar 2) -> Mengambil Kolom F (Keterangan)
+  const descEl = document.getElementById("detailModalDesc");
+  const descText = product.keterangan || product.Keterangan || product['Keterangan'] || product.deskripsi || product[5] || "";
+  if (descEl) descEl.innerText = descText;
+
+  // Harga Produk
+  const priceEl = document.getElementById("detailModalPrice");
+  if (priceEl) priceEl.innerText = "Rp" + (product.harga || 0).toLocaleString('id-ID');
+
+  // Input Catatan & Qty
   const noteEl = document.getElementById("detailModalNote");
   if (noteEl) noteEl.value = existingItem ? (existingItem.note || "") : "";
 
-  // Set nilai Qty ke Input
   const qtyEl = document.getElementById("detailModalQty");
   if (qtyEl) {
     if ('value' in qtyEl) qtyEl.value = currentDetailQty;

@@ -1,1652 +1,530 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
-
-const DEFAULT_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f3f5'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%23adb5bd'>KTLM</text></svg>";
-
-
-
-let storeConfig = {};
-
-let allProducts = [];
-
-let allCustomers = [];
-
-let allSubcategories = [];
-
-let cart = [];
-
-let pendingOrdersArr = [];
-
-let selectedCategory = "ALL";
-
-let activeSubProduct = null;
-
-let selectedSubOptions = {};
-
-let currentModalProduct = null;
-
-let currentModalQty = 1;
-
-
-
-
-
-// 1. Membuka Modal saat Gambar / Kartu Diklik
-
-function openDetailModal(productId) {
-
-  const product = allProducts.find(p => p.id === productId); // Gunakan allProducts
-
-  if (!product) return;
-
-
-
-  currentModalProduct = product;
-
-  currentModalQty = 1;
-
-
-
-  const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
-
-  
-
-  document.getElementById('modal-img').src = fixImageUrl(rawImgUrl);
-
-  document.getElementById('modal-title').innerText = product.nama; // Gunakan .nama
-
-  document.getElementById('modal-price').innerText = "Rp" + formatRupiah(product.harga); // Gunakan formatRupiah & .harga
-
-  document.getElementById('modal-qty-val').innerText = currentModalQty;
-
-  document.getElementById('modal-notes').value = '';
-
-
-
-  document.getElementById('detail-modal').style.display = 'flex';
-
-}
-
-
-
-function closeDetailModal() {
-
-  document.getElementById('detail-modal').style.display = 'none';
-
-  currentModalProduct = null;
-
-}
-
-
-
-// 2. Mengubah Jumlah Qty di Dalam Modal
-
-function changeModalQty(delta) {
-
-  currentModalQty = Math.max(1, currentModalQty + delta);
-
-  document.getElementById('modal-qty-val').innerText = currentModalQty;
-
-}
-
-
-
-// 3. Menyimpan Hasil Pilihan + Catatan dari Modal ke Keranjang
-
-function saveModalToCart() {
-
-  if (!currentModalProduct) return;
-
-  const notesInput = document.getElementById('modal-notes').value.trim();
-
-
-
-  // Panggil addToCart sesuai signature (product, qty, subVariant/notes)
-
-  addToCart(currentModalProduct, currentModalQty, notesInput);
-
-  closeDetailModal();
-
-}
-
-
-
-// 4. Counter tombol - + di bagian bawah kartu menu utama
-
-function updateCardQty(productId, delta) {
-
-  // Mengubah qty langsung dari kartu bawah tanpa modal
-
-  let cartItem = cart.find(item => item.id === productId && !item.notes);
-
-  
-
-  if (cartItem) {
-
-    cartItem.qty += delta;
-
-    if (cartItem.qty <= 0) {
-
-      cart = cart.filter(item => item !== cartItem);
-
-    }
-
-  } else if (delta > 0) {
-
-    const product = PRODUCTS.find(p => p.id === productId);
-
-    cart.push({
-
-      id: product.id,
-
-      name: product.name,
-
-      price: product.price,
-
-      qty: 1,
-
-      notes: ''
-
-    });
-
+/* ==========================================================================
+   KTLM KITCHEN POS - SYSTEM ENGINE (kasir.js)
+   ========================================================================== */
+
+// --------------------------------------------------------------------------
+// 1. DATA MASTER PRODUK (Contoh Data Menu ala Gacoan / KTLM Kitchen)
+// --------------------------------------------------------------------------
+const PRODUCTS = [
+  {
+    id: 'p1',
+    name: 'Mie Iblis (Pedas Manis)',
+    price: 11000,
+    category: 'Mie',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80',
+    hasVariants: true,
+    levels: [0, 1, 2, 3, 4, 6, 8],
+    toppings: [
+      { id: 't1', name: 'Extra Udang Keju (2 pcs)', price: 9000 },
+      { id: 't2', name: 'Extra Pangsit Goreng', price: 4000 },
+      { id: 't3', name: 'Telur Ceplok', price: 4000 }
+    ]
+  },
+  {
+    id: 'p2',
+    name: 'Mie Setan (Pedas Asin)',
+    price: 11000,
+    category: 'Mie',
+    image: 'https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?w=400&q=80',
+    hasVariants: true,
+    levels: [1, 2, 3, 4, 6, 8],
+    toppings: [
+      { id: 't1', name: 'Extra Udang Keju (2 pcs)', price: 9000 },
+      { id: 't2', name: 'Extra Pangsit Goreng', price: 4000 }
+    ]
+  },
+  {
+    id: 'p3',
+    name: 'Udang Keju (3 pcs)',
+    price: 10000,
+    category: 'Dimsum',
+    image: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=400&q=80',
+    hasVariants: false
+  },
+  {
+    id: 'p4',
+    name: 'Udang Rambutan (3 pcs)',
+    price: 10000,
+    category: 'Dimsum',
+    image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80',
+    hasVariants: false
+  },
+  {
+    id: 'p5',
+    name: 'Siomay Ayam (3 pcs)',
+    price: 9000,
+    category: 'Dimsum',
+    image: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&q=80',
+    hasVariants: false
+  },
+  {
+    id: 'p6',
+    name: 'Es Genderuwo',
+    price: 9500,
+    category: 'Minuman',
+    image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&q=80',
+    hasVariants: false
+  },
+  {
+    id: 'p7',
+    name: 'Es Pocong',
+    price: 9500,
+    category: 'Minuman',
+    image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&q=80',
+    hasVariants: false
+  },
+  {
+    id: 'p8',
+    name: 'Es Teh Manis',
+    price: 4000,
+    category: 'Minuman',
+    image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&q=80',
+    hasVariants: true,
+    drinkOptions: ['Dingin (Es)', 'Hangat']
   }
+];
 
-  
+// --------------------------------------------------------------------------
+// 2. STATE MANAGEMENT (Aplikasi State)
+// --------------------------------------------------------------------------
+let cart = []; // Menyimpan item di keranjang [{ cartItemId, id, name, price, qty, level, toppings, note }]
+let currentCategory = 'Semua';
+let searchQuery = '';
+let activeProductForModal = null;
+let selectedLevel = null;
+let selectedToppings = [];
+let modalQty = 1;
 
-  renderCart();
+// --------------------------------------------------------------------------
+// 3. INITIALIZATION & EVENT LISTENERS
+// --------------------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  renderCategoryBar();
+  renderProducts();
+  updateCartUI();
 
-  updateCardQtyDisplay(productId);
-
-}
-
-
-
-let posSettings = {
-
-  showImages: true,
-
-  printMode: 'rawbt',
-
-  paperSize: '58mm',
-
-  headerName: 'KTLM Kitchen',
-
-  address: '',
-
-  waPhone: ''
-
-};
-
-
+  // Search Bar Event
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase();
+      renderProducts();
+    });
+  }
+});
 
 // Helper Format Rupiah
-
-function formatRupiah(angka) {
-
-  return (angka || 0).toLocaleString('id-ID');
-
+function formatRp(number) {
+  return 'Rp ' + number.toLocaleString('id-ID');
 }
 
+// --------------------------------------------------------------------------
+// 4. RENDER CATEGORY BAR & PRODUCTS
+// --------------------------------------------------------------------------
+function renderCategoryBar() {
+  const categoryContainer = document.getElementById('category-bar');
+  if (!categoryContainer) return;
 
-
-function initSettings() {
-
-  const saved = localStorage.getItem('ktlm_pos_settings');
-
-  if (saved) {
-
-    try {
-
-      posSettings = Object.assign(posSettings, JSON.parse(saved));
-
-    } catch(e){}
-
-  }
-
-  document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-
+  const categories = ['Semua', ...new Set(PRODUCTS.map(p => p.category))];
+  categoryContainer.innerHTML = categories.map(cat => `
+    <button class="cat-btn ${cat === currentCategory ? 'active' : ''}" onclick="selectCategory('${cat}')">
+      ${cat}
+    </button>
+  `).join('');
 }
 
-
-
-function fixImageUrl(url) {
-
-  if (!url || typeof url !== 'string' || url.trim() === '') return DEFAULT_PLACEHOLDER;
-
-  if (url.includes('drive.google.com')) {
-
-    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-
-    if (match && match[1]) {
-
-      return `https://lh3.googleusercontent.com/d/${match[1]}`;
-
-    }
-
-  }
-
-  return url;
-
+function selectCategory(cat) {
+  currentCategory = cat;
+  renderCategoryBar();
+  renderProducts();
 }
 
+function renderProducts() {
+  const gridContainer = document.getElementById('product-grid');
+  if (!gridContainer) return;
 
-
-async function loadData() {
-
-  initSettings();
-
-  try {
-
-    const res = await fetch(API_URL);
-
-    const data = await res.json();
-
-    storeConfig = data.store || {};
-
-    allProducts = data.products || [];
-
-    allCustomers = data.customers || [];
-
-    allSubcategories = data.subkategori || [];
-
-
-
-    renderCategories();
-
-    filterProducts();
-
-    renderCustomers();
-
-  } catch (err) {
-
-    console.error(err);
-
-    alert("Gagal memuat data dari server.");
-
-  }
-
-}
-
-
-
-function renderCustomers() {
-
-  const custSelect = document.getElementById("customerSelect");
-
-  if (!custSelect) return;
-
-  if (allCustomers.length > 0) {
-
-    custSelect.innerHTML = allCustomers.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
-
-  } else {
-
-    custSelect.innerHTML = `<option value="Umum">Umum / Walk-in</option>`;
-
-  }
-
-}
-
-
-
-function renderCategories() {
-
-  const catBar = document.getElementById("categoryBar");
-
-  if (!catBar) return;
-
-  
-
-  // Hanya ambil kategori dari produk yang Aktif (Kolom I)
-
-  const activeProducts = allProducts.filter(p => {
-
-    const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
-
-    return statusAktif === 'Y';
-
+  const filtered = PRODUCTS.filter(p => {
+    const matchesCategory = currentCategory === 'Semua' || p.category === currentCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery);
+    return matchesCategory && matchesSearch;
   });
 
-
-
-  const categories = ["ALL", ...new Set(activeProducts.map(p => p.kategori).filter(Boolean))];
-
-  catBar.innerHTML = categories.map(cat => 
-
-    `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
-
-  ).join('');
-
-}
-
-
-
-function renderProducts(products) {
-
-  const grid = document.getElementById("productGrid");
-
-  if (!grid) return;
-
-  if (products.length === 0) {
-
-    grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Menu tidak ditemukan</p>';
-
+  if (filtered.length === 0) {
+    gridContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">Menu tidak ditemukan</div>`;
     return;
-
   }
 
-  
-
-  grid.innerHTML = products.map(p => {
-
-    const totalQtyInCart = cart
-
-      .filter(c => c.product.id === p.id)
-
-      .reduce((sum, i) => sum + i.qty, 0);
-
-
-
-    const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
-
-    const imgUrl = fixImageUrl(rawImgUrl);
-
-    const isSelected = totalQtyInCart > 0;
-
-
+  gridContainer.innerHTML = filtered.map(product => {
+    // Hitung total Qty item produk ini di keranjang
+    const cartItems = cart.filter(item => item.id === product.id);
+    const totalQtyInCart = cartItems.reduce((acc, cur) => acc + cur.qty, 0);
+    const hasSelected = totalQtyInCart > 0;
 
     return `
-
-      <div class="product-card ${isSelected ? 'has-selected' : ''}">
-
-        <div class="product-img-wrapper" onclick="openDetailModal('${p.id}')">
-
-          <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
-
+      <div class="product-card ${hasSelected ? 'has-selected' : ''}">
+        <div class="product-img-wrapper" onclick="handleProductClick('${product.id}')">
+          <img src="${product.image}" alt="${product.name}" class="product-img" loading="lazy">
+          ${product.hasVariants ? `<span class="variant-tag">Ada Pilihan</span>` : ''}
         </div>
-
-        
-
         <div class="product-details">
-
-          <div class="product-info-text" onclick="openDetailModal('${p.id}')">
-
-            <div class="product-title">${p.nama}</div>
-
-            <div class="product-price">Rp${formatRupiah(p.harga)}</div>
-
+          <div class="product-info-text">
+            <div class="product-title" onclick="handleProductClick('${product.id}')">${product.name}</div>
+            <div class="product-price">${formatRp(product.price)}</div>
           </div>
-
-
-
-          <div class="qty-badge-inline" onclick="event.stopPropagation()">
-
-            <button class="btn-qty-mini" onclick="updateDirectQty('${p.id}', ${totalQtyInCart - 1})">-</button>
-
-            <span class="counter-val">${totalQtyInCart}</span>
-
-            <button class="btn-qty-mini" onclick="handleProductClick('${p.id}', event)">+</button>
-
-          </div>
-
+          
+          ${hasSelected && !product.hasVariants ? `
+            <div class="qty-badge-inline">
+              <button class="btn-qty-card" onclick="updateSimpleQty('${product.id}', -1)">-</button>
+              <span class="qty-input-inline">${totalQtyInCart}</span>
+              <button class="btn-qty-card" onclick="updateSimpleQty('${product.id}', 1)">+</button>
+            </div>
+          ` : `
+            <button class="btn-add-card" onclick="handleProductClick('${product.id}')">
+              ${hasSelected ? `+ Tambah (${totalQtyInCart})` : '+ Tambah'}
+            </button>
+          `}
         </div>
-
       </div>
-
     `;
-
   }).join('');
-
 }
 
-
-
-function getSubCategoriesForProduct(product) {
-
-  if (!allSubcategories || allSubcategories.length === 0) return [];
-
-  return allSubcategories.filter(s => 
-
-    (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
-
-    (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
-
-  );
-
-}
-
-
-
-function handleProductClick(id, event) {
-
-  const product = allProducts.find(p => p.id === id);
-
+// --------------------------------------------------------------------------
+// 5. MODAL VARIASI & LEVEL (Gacoan Pop-Up System)
+// --------------------------------------------------------------------------
+function handleProductClick(productId) {
+  const product = PRODUCTS.find(p => p.id === productId);
   if (!product) return;
 
-
-
-  const subCategories = getSubCategoriesForProduct(product);
-
-
-
-  if (subCategories.length > 0) {
-
-    openSubCategoryModal(product, subCategories);
-
+  if (product.hasVariants) {
+    openVariantModal(product);
   } else {
-
-    addToCart(product, 1, "");
-
+    // Jika tidak ada variasi, langsung tambah 1 ke keranjang
+    addToCartSimple(product);
   }
-
 }
 
+function openVariantModal(product) {
+  activeProductForModal = product;
+  selectedLevel = product.levels ? product.levels[0] : null;
+  selectedToppings = [];
+  modalQty = 1;
 
+  const modal = document.getElementById('variant-modal');
+  if (!modal) return;
 
-function onQtyDirectChange(productId, val) {
+  // Render Judul & Detail Modal
+  document.getElementById('modal-product-title').innerText = product.name;
+  document.getElementById('modal-product-price').innerText = formatRp(product.price);
 
-  const product = allProducts.find(p => p.id === productId);
+  let htmlContent = '';
 
-  if (!product) return;
-
-
-
-  const newQty = parseInt(val) || 0;
-
-  const subCategories = getSubCategoriesForProduct(product);
-
-
-
-  if (subCategories.length > 0) {
-
-    openSubCategoryModal(product, subCategories);
-
-  } else {
-
-    updateDirectQty(productId, newQty);
-
+  // Render Level Pedas (jika ada)
+  if (product.levels) {
+    htmlContent += `
+      <div class="option-group">
+        <div class="option-label">PILEH LEVEL PEDAS</div>
+        <div class="chips-container">
+          ${product.levels.map(lvl => `
+            <div class="chip-option ${lvl === selectedLevel ? 'selected' : ''}" onclick="selectLevel(${lvl})">
+              Lvl ${lvl}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
   }
 
-}
-
-
-
-function openSubCategoryModal(product, subCategories) {
-
-  activeSubProduct = product;
-
-  selectedSubOptions = {};
-
-
-
-  document.getElementById("subModalTitle").innerText = product.nama;
-
-  const modalBody = document.getElementById("subModalBody");
-
-
-
-  let html = '';
-
-  subCategories.forEach((group, index) => {
-
-    const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
-
-    let rawOptions = group.opsi || group.pilihan || "";
-
-    let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
-
-
-
-    const groupLower = groupName.toLowerCase();
-
-    const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
-
-                           groupLower.includes('paket') || groupLower.includes('pilih') || 
-
-                           group.tipe === 'counter';
-
-
-
-    if (optionsList.length > 0) {
-
-      if (isCounterGroup) {
-
-        selectedSubOptions[groupName] = {};
-
-        optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
-
-
-
-        html += `
-
-          <div class="option-group">
-
-            <div class="option-label">
-
-              <span>${groupName.toUpperCase()}</span>
-
-              <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
-
+  // Render Opsi Minuman (jika ada)
+  if (product.drinkOptions) {
+    selectedLevel = product.drinkOptions[0]; // simpan di selectedLevel untuk kemudahan
+    htmlContent += `
+      <div class="option-group">
+        <div class="option-label">PILIHAN SERTI</div>
+        <div class="chips-container">
+          ${product.drinkOptions.map(opt => `
+            <div class="chip-option ${opt === selectedLevel ? 'selected' : ''}" onclick="selectDrinkOption('${opt}')">
+              ${opt}
             </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
 
-            <div>
-
-              ${optionsList.map(opt => `
-
-                <div class="counter-item-row">
-
-                  <span class="counter-item-name">${opt}</span>
-
-                  <div class="counter-control">
-
-                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
-
-                    <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
-
-                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
-
-                  </div>
-
-                </div>
-
-              `).join('')}
-
-            </div>
-
+  // Render Topping (jika ada)
+  if (product.toppings) {
+    htmlContent += `
+      <div class="option-group">
+        <div class="option-label">TAMBAH TOPPING</div>
+        ${product.toppings.map(t => `
+          <div class="counter-item-row">
+            <span class="counter-item-name">${t.name} (+${formatRp(t.price)})</span>
+            <input type="checkbox" onchange="toggleTopping('${t.id}')" style="width: 18px; height: 18px;">
           </div>
+        `).join('')}
+      </div>
+    `;
+  }
 
-        `;
-
-      } else {
-
-        selectedSubOptions[groupName] = optionsList[0];
-
-
-
-        html += `
-
-          <div class="option-group">
-
-            <div class="option-label">
-
-              <span>${groupName.toUpperCase()}</span>
-
-              <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
-
-            </div>
-
-            <div class="chips-container">
-
-              ${optionsList.map((opt, optIndex) => `
-
-                <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
-
-                        onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
-
-                  ${opt}
-
-                </button>
-
-              `).join('')}
-
-            </div>
-
-          </div>
-
-        `;
-
-      }
-
-    }
-
-  });
-
-
-
-  html += `
-
-    <div class="form-group" style="margin-top:15px;">
-
-      <label>JUMLAH PAKET / PORSI</label>
-
-      <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
-
+  // Counter Qty Modal
+  htmlContent += `
+    <div class="counter-item-row" style="margin-top: 15px;">
+      <span class="counter-item-name">JUMLAH PESANAN</span>
+      <div class="qty-badge-inline">
+        <button class="btn-qty-card" onclick="changeModalQty(-1)">-</button>
+        <span class="qty-input-inline" id="modal-qty-val">${modalQty}</span>
+        <button class="btn-qty-card" onclick="changeModalQty(1)">+</button>
+      </div>
     </div>
-
   `;
 
-
-
-  modalBody.innerHTML = html;
-
-  document.getElementById("subCategoryModal").style.display = "flex";
-
+  document.getElementById('variant-modal-body').innerHTML = htmlContent;
+  modal.style.display = 'flex';
 }
 
-
-
-function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
-
-  if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
-
-  
-
-  let currentVal = selectedSubOptions[groupName][optionValue] || 0;
-
-  let newVal = Math.max(0, currentVal + delta);
-
-  selectedSubOptions[groupName][optionValue] = newVal;
-
-
-
-  const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
-
-  const el = document.getElementById(elementId);
-
-  if (el) el.innerText = newVal;
-
-
-
-  const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
-
-  const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
-
-  if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
-
+function selectLevel(lvl) {
+  selectedLevel = lvl;
+  openVariantModal(activeProductForModal); // Refresh UI Modal
 }
 
-
-
-function selectSingleSubOption(groupName, optionValue, btn) {
-
-  selectedSubOptions[groupName] = optionValue;
-
-  const parent = btn.parentElement;
-
-  parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
-
-  btn.classList.add('selected');
-
+function selectDrinkOption(opt) {
+  selectedLevel = opt;
+  openVariantModal(activeProductForModal);
 }
 
-
-
-function closeSubModal() {
-
-  document.getElementById("subCategoryModal").style.display = "none";
-
-  activeSubProduct = null;
-
+function toggleTopping(toppingId) {
+  const index = selectedToppings.indexOf(toppingId);
+  if (index > -1) {
+    selectedToppings.splice(index, 1);
+  } else {
+    selectedToppings.push(toppingId);
+  }
 }
 
+function changeModalQty(delta) {
+  modalQty = Math.max(1, modalQty + delta);
+  const qtyElem = document.getElementById('modal-qty-val');
+  if (qtyElem) qtyElem.innerText = modalQty;
+}
 
+function closeVariantModal() {
+  const modal = document.getElementById('variant-modal');
+  if (modal) modal.style.display = 'none';
+  activeProductForModal = null;
+}
 
-function confirmSubCategorySelection() {
+function submitVariantToCart() {
+  if (!activeProductForModal) return;
 
-  if (!activeSubProduct) return;
+  // Hitung total harga item + topping
+  let extraPrice = 0;
+  let toppingNames = [];
 
-  const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
-
-  
-
-  let formattedSelections = [];
-
-
-
-  Object.keys(selectedSubOptions).forEach(key => {
-
-    const val = selectedSubOptions[key];
-
-    if (typeof val === 'object' && val !== null) {
-
-      let itemsList = [];
-
-      Object.keys(val).forEach(itemKey => {
-
-        if (val[itemKey] > 0) {
-
-          itemsList.push(`${val[itemKey]} ${itemKey}`);
-
-        }
-
-      });
-
-      if (itemsList.length > 0) {
-
-        formattedSelections.push(itemsList.join(', '));
-
+  if (activeProductForModal.toppings) {
+    selectedToppings.forEach(tId => {
+      const top = activeProductForModal.toppings.find(t => t.id === tId);
+      if (top) {
+        extraPrice += top.price;
+        toppingNames.push(top.name);
       }
+    });
+  }
 
-    } else if (val) {
+  const itemPrice = activeProductForModal.price + extraPrice;
+  const cartItemId = `${activeProductForModal.id}-${selectedLevel}-${selectedToppings.sort().join(',')}`;
 
-      formattedSelections.push(val);
+  // Cek apakah item variasi identik sudah ada di keranjang
+  const existingIndex = cart.findIndex(item => item.cartItemId === cartItemId);
 
-    }
-
-  });
-
-
-
-  const subVariantText = formattedSelections.join(' | ');
-
-
-
-  addToCart(activeSubProduct, qty, subVariantText);
-
-  closeSubModal();
-
-}
-
-
-
-function addToCart(product, qty, subVariant) {
-
-  const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
-
-  if (existing) {
-
-    existing.qty += qty;
-
+  if (existingIndex > -1) {
+    cart[existingIndex].qty += modalQty;
   } else {
-
-    cart.push({ product: product, qty: qty, subVariant: subVariant || "" });
-
+    cart.push({
+      cartItemId: cartItemId,
+      id: activeProductForModal.id,
+      name: activeProductForModal.name,
+      basePrice: activeProductForModal.price,
+      price: itemPrice,
+      qty: modalQty,
+      variantDetail: selectedLevel !== null ? (typeof selectedLevel === 'number' ? `Level ${selectedLevel}` : selectedLevel) : '',
+      toppingsText: toppingNames.join(', ')
+    });
   }
 
+  closeVariantModal();
   updateCartUI();
-
-  filterProducts();
-
+  renderProducts();
 }
 
+// --------------------------------------------------------------------------
+// 6. KERANJANG BELANJA & BOTTOM BAR MANAGEMENT
+// --------------------------------------------------------------------------
+function addToCartSimple(product) {
+  const existingIndex = cart.findIndex(item => item.id === product.id && !item.variantDetail);
 
-
-function updateDirectQty(productId, newQty) {
-
-  const existingIndex = cart.findIndex(item => item.product.id === productId);
-
-  if (newQty <= 0) {
-
-    if (existingIndex !== -1) cart.splice(existingIndex, 1);
-
+  if (existingIndex > -1) {
+    cart[existingIndex].qty += 1;
   } else {
+    cart.push({
+      cartItemId: product.id,
+      id: product.id,
+      name: product.name,
+      basePrice: product.price,
+      price: product.price,
+      qty: 1,
+      variantDetail: '',
+      toppingsText: ''
+    });
+  }
 
-    if (existingIndex !== -1) {
+  updateCartUI();
+  renderProducts();
+}
 
-      cart[existingIndex].qty = newQty;
-
-    } else {
-
-      const product = allProducts.find(p => p.id === productId);
-
-      if (product) cart.push({ product: product, qty: newQty, subVariant: "" });
-
+function updateSimpleQty(productId, delta) {
+  const itemIndex = cart.findIndex(item => item.id === productId && !item.variantDetail);
+  if (itemIndex > -1) {
+    cart[itemIndex].qty += delta;
+    if (cart[itemIndex].qty <= 0) {
+      cart.splice(itemIndex, 1);
     }
-
   }
-
   updateCartUI();
-
-  filterProducts();
-
+  renderProducts();
 }
-
-
-
-function updateQtyInCartList(index, delta) {
-
-  if (cart[index]) {
-
-    cart[index].qty += delta;
-
-    if (cart[index].qty <= 0) cart.splice(index, 1);
-
-  }
-
-  updateCartUI();
-
-  renderModalCartList();
-
-  filterProducts();
-
-  
-
-  if (cart.length === 0) {
-
-    closeCheckoutModal();
-
-  }
-
-}
-
-
-
-function filterCategory(cat, btn) {
-
-  selectedCategory = cat;
-
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-
-  btn.classList.add('active');
-
-  filterProducts();
-
-}
-
-
-
-function filterProducts() {
-
-  const searchInput = document.getElementById("searchInput");
-
-  const keyword = searchInput ? searchInput.value.toLowerCase() : "";
-
-  
-
-  let filtered = allProducts.filter(p => {
-
-    // Filter Kolom I (Aktif) -> Hanya tampilkan jika 'Y'
-
-    const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
-
-    const isAktif = statusAktif === 'Y';
-
-
-
-    const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
-
-    const matchSearch = p.nama.toLowerCase().includes(keyword);
-
-    
-
-    return isAktif && matchCat && matchSearch;
-
-  });
-
-
-
-  renderProducts(filtered);
-
-}
-
-
 
 function updateCartUI() {
+  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-  const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+  // Bottom Bar Elements
+  const bottomItemsElem = document.getElementById('bottom-cart-items');
+  const bottomTotalElem = document.getElementById('bottom-cart-total');
+  const checkoutBtn = document.getElementById('btn-checkout');
 
-  const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
-
-
-
-  const itemCountEl = document.getElementById("barItemCount");
-
-  const totalAmountEl = document.getElementById("barTotalAmount");
-
-  const modalTotalEl = document.getElementById("modalTotalAmount");
-
-  const btnCheckout = document.getElementById("btnOpenCheckout");
-
-
-
-  if (itemCountEl) itemCountEl.innerText = `${totalQty} Item`;
-
-  if (totalAmountEl) totalAmountEl.innerText = `Rp${formatRupiah(totalPrice)}`;
-
-  if (modalTotalEl) modalTotalEl.innerText = `Rp${formatRupiah(totalPrice)}`;
-
-  if (btnCheckout) btnCheckout.disabled = cart.length === 0;
-
+  if (bottomItemsElem) bottomItemsElem.innerText = `${totalItems} Item`;
+  if (bottomTotalElem) bottomTotalElem.innerText = formatRp(totalPrice);
+  if (checkoutBtn) checkoutBtn.disabled = totalItems === 0;
 }
 
-
-
-function openCheckoutModal() {
-
+// --------------------------------------------------------------------------
+// 7. MODAL CHECKOUT & CETAK STRUK THERMAL
+// --------------------------------------------------------------------------
+function openCartDrawer() {
   if (cart.length === 0) return;
 
-  renderModalCartList();
+  const checkoutModal = document.getElementById('checkout-modal');
+  const cartContainer = document.getElementById('cart-items-container');
+  const summaryTotal = document.getElementById('checkout-total-price');
 
-  document.getElementById("checkoutModal").style.display = "flex";
+  if (!checkoutModal || !cartContainer) return;
 
+  // Render Rincian Item Keranjang
+  cartContainer.innerHTML = cart.map((item, index) => `
+    <div class="cart-item-row">
+      <div>
+        <div class="cart-item-name">${item.name}</div>
+        ${item.variantDetail || item.toppingsText ? `
+          <div class="cart-item-sub">${[item.variantDetail, item.toppingsText].filter(Boolean).join(' | ')}</div>
+        ` : ''}
+        <div class="cart-item-price">${formatRp(item.price)} x ${item.qty}</div>
+      </div>
+      <div class="qty-badge-inline">
+        <button class="btn-qty-card" onclick="changeCartItemQty(${index}, -1)">-</button>
+        <span class="qty-input-inline">${item.qty}</span>
+        <button class="btn-qty-card" onclick="changeCartItemQty(${index}, 1)">+</button>
+      </div>
+    </div>
+  `).join('');
+
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  if (summaryTotal) summaryTotal.innerText = formatRp(totalPrice);
+
+  checkoutModal.style.display = 'flex';
 }
 
-
+function changeCartItemQty(index, delta) {
+  cart[index].qty += delta;
+  if (cart[index].qty <= 0) {
+    cart.splice(index, 1);
+  }
+  if (cart.length === 0) {
+    closeCheckoutModal();
+  } else {
+    openCartDrawer(); // Re-render Checkout
+  }
+  updateCartUI();
+  renderProducts();
+}
 
 function closeCheckoutModal() {
-
-  document.getElementById("checkoutModal").style.display = "none";
-
+  const checkoutModal = document.getElementById('checkout-modal');
+  if (checkoutModal) checkoutModal.style.display = 'none';
 }
 
-
-
-function renderModalCartList() {
-
-  const container = document.getElementById("modalCartList");
-
-  if (!container) return;
-
-  container.innerHTML = cart.map((item, idx) => `
-
-    <div class="cart-item-row">
-
-      <div>
-
-        <div class="cart-item-name">${item.product.nama}</div>
-
-        ${item.subVariant ? `<div class="cart-item-sub">[ ${item.subVariant} ]</div>` : ''}
-
-        <div class="cart-item-price">Rp${formatRupiah(item.product.harga)} x ${item.qty}</div>
-
-      </div>
-
-      <div class="qty-controls">
-
-        <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
-
-        <span style="font-size:13px; font-weight:bold;">${item.qty}</span>
-
-        <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, 1)">+</button>
-
-      </div>
-
-    </div>
-
-  `).join('');
-
-}
-
-
-
-function openSettingsModal() {
-
-  document.getElementById("settingShowImages").checked = posSettings.showImages;
-
-  document.getElementById("settingPrintMode").value = posSettings.printMode;
-
-  document.getElementById("settingPaperSize").value = posSettings.paperSize;
-
-  document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-
-  document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.Alamat || '';
-
-  document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.WA || '';
-
-  document.getElementById("settingsModal").style.display = "flex";
-
-}
-
-
-
-function closeSettingsModal() {
-
-  document.getElementById("settingsModal").style.display = "none";
-
-}
-
-
-
-function savePrinterSettings() {
-
-  posSettings.showImages = document.getElementById("settingShowImages").checked;
-
-  posSettings.printMode = document.getElementById("settingPrintMode").value;
-
-  posSettings.paperSize = document.getElementById("settingPaperSize").value;
-
-  posSettings.headerName = document.getElementById("settingHeaderStore").value;
-
-  posSettings.address = document.getElementById("settingAddressStore").value;
-
-  posSettings.waPhone = document.getElementById("settingWaStore").value;
-
-
-
-  localStorage.setItem('ktlm_pos_settings', JSON.stringify(posSettings));
-
-  document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-
-
-
-  filterProducts();
-
-  alert("Pengaturan tersimpan!");
-
-  closeSettingsModal();
-
-}
-
-
-
-function addQuickNote(text) {
-
-  const noteInput = document.getElementById("orderNote");
-
-  if (!noteInput) return;
-
-  if (noteInput.value.trim() === "") {
-
-    noteInput.value = text;
-
-  } else {
-
-    noteInput.value += ", " + text;
-
-  }
-
-}
-
-
-
-/* PROSES PEMBAYARAN KASIR LANGSUNG */
-
-async function processPayment() {
-
+// --------------------------------------------------------------------------
+// 8. PROSES BAYAR & CETAK STRUK
+// --------------------------------------------------------------------------
+function processPayment() {
   if (cart.length === 0) return;
 
+  const orderType = document.getElementById('order-type') ? document.getElementById('order-type').value : 'Dine In';
+  const customerName = document.getElementById('customer-name') ? document.getElementById('customer-name').value || 'Pelanggan' : 'Pelanggan';
+  const paymentMethod = document.getElementById('payment-method') ? document.getElementById('payment-method').value : 'Tunai';
 
-
-  const btnPay = document.querySelector("#checkoutModal .btn-confirm-pay");
-
-  if (btnPay) {
-
-    btnPay.disabled = true;
-
-    btnPay.innerText = "PROSES SIMPAN...";
-
-  }
-
-
-
+  const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const now = new Date();
-
-  const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
-
-  const waktuTx = now.toLocaleString('id-ID');
-
-  const selectedCustomer = document.getElementById("customerSelect")?.value || "Umum";
-
-  const selectedPayment = document.getElementById("paymentMethodSelect")?.value || "Tunai";
-
-  const noteValue = document.getElementById("orderNote")?.value.trim() || "";
-
-  
-
-  const totalBelanja = cart.reduce((sum, i) => sum + ((i.product.harga || 0) * i.qty), 0);
-
-  const totalHpp = cart.reduce((sum, i) => sum + ((i.product.hpp || 0) * i.qty), 0);
-
-  
-
-  let detailText = cart.map(i => {
-
-    let nameStr = i.product.nama;
-
-    if (i.subVariant) nameStr += ` (${i.subVariant})`;
-
-    return `${nameStr} (${i.qty}x)`;
-
-  }).join(", ");
-
-
-
-  if (noteValue) {
-
-    detailText += ` | Catatan: ${noteValue}`;
-
-  }
-
-
-
-  const payload = {
-
-    noInvoice: invoiceNo,
-
-    waktu: waktuTx,
-
-    customerName: selectedCustomer,
-
-    detailItems: detailText,
-
-    totalBelanja: totalBelanja,
-
-    totalHpp: totalHpp,
-
-    jenisPembayaran: selectedPayment,
-
-    uangDiterima: totalBelanja,
-
-    kembalian: 0,
-
-    kasir: "Kasir",
-
-    sumber: "Kasir",
-
-    status: "SELESAI"
-
-  };
-
-
-
-  try {
-
-    await fetch(API_URL, {
-
-      method: "POST",
-
-      mode: "no-cors",
-
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-
-      body: JSON.stringify(payload)
-
-    });
-
-
-
-    printReceipt(payload, noteValue);
-
-
-
-    alert("Transaksi Berhasil Disimpan!");
-
-    cart = [];
-
-    if (document.getElementById("orderNote")) document.getElementById("orderNote").value = "";
-
-    updateCartUI();
-
-    closeCheckoutModal();
-
-    filterProducts();
-
-  } catch (err) {
-
-    console.error("Gagal simpan:", err);
-
-    alert("Koneksi gagal. Cek sambungan internet.");
-
-  } finally {
-
-    if (btnPay) {
-
-      btnPay.disabled = false;
-
-      btnPay.innerText = "BAYAR & PRINT STRUK";
-
-    }
-
-  }
-
-}
-
-
-
-/* MANAGEMENT PESANAN MASUK KATALOG */
-
-async function checkPendingOrders() {
-
-  try {
-
-    const res = await fetch(`${API_URL}?action=getPendingOrders`);
-
-    const data = await res.json();
-
-    pendingOrdersArr = data.orders || [];
-
-
-
-    const badge = document.getElementById("orderBadge");
-
-    if (badge) {
-
-      badge.innerText = pendingOrdersArr.length;
-
-      badge.style.display = pendingOrdersArr.length > 0 ? "inline-block" : "none";
-
-    }
-
-  } catch (err) {
-
-    console.error("Gagal cek pesanan:", err);
-
-  }
-
-}
-
-
-
-function openPendingOrdersModal() {
-
-  renderPendingOrders();
-
-  document.getElementById("pendingOrdersModal").style.display = "flex";
-
-}
-
-
-
-function closePendingOrdersModal() {
-
-  document.getElementById("pendingOrdersModal").style.display = "none";
-
-}
-
-
-
-function renderPendingOrders() {
-
-  const container = document.getElementById("pendingOrdersList");
-
-  if (!container) return;
-
-
-
-  if (pendingOrdersArr.length === 0) {
-
-    container.innerHTML = "<p style='text-align:center; color:#6c757d; padding:20px;'>Belum ada pesanan masuk dari katalog.</p>";
-
-    return;
-
-  }
-
-
-
-  container.innerHTML = pendingOrdersArr.map(order => `
-
-    <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px; margin-bottom:12px;">
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-
-        <strong style="color:#1b5e20;">${order.noInvoice}</strong>
-
-        <span style="font-size:11px; color:#6c757d;">${order.waktu}</span>
-
-      </div>
-
-      <div style="font-size:13px; font-weight:bold; margin-bottom:4px;">Pelanggan: ${order.customerName}</div>
-
-      <div style="font-size:12px; color:#333; background:#fff; padding:8px; border-radius:6px; border:1px solid #eee; margin-bottom:8px;">
-
-        ${order.detailItems}
-
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:bold; margin-bottom:10px;">
-
-        <span>Total: Rp${formatRupiah(order.totalBelanja)}</span>
-
-        <span style="color:#2e7d32; font-size:11px; background:#e8f5e9; padding:2px 8px; border-radius:4px;">${order.jenisPembayaran}</span>
-
-      </div>
-
-      <button onclick="processAndPrintCatalogOrder(${order.rowNum})" class="btn-confirm-pay" style="padding:10px; font-size:13px;">
-
-        🖨️ PROSES & PRINT STRUK
-
-      </button>
-
+  const timeStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+  // Template Struk Thermal (58mm)
+  const receiptHTML = `
+    <div style="text-align: center; font-weight: bold; font-size: 14px;">KTLM KITCHEN</div>
+    <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">Jl. Raya Utama No. 123, Malang</div>
+    <div style="border-bottom: 1px dashed #000; margin: 4px 0;"></div>
+    <div style="font-size: 10px;">
+      <div>Tgl : ${timeStr}</div>
+      <div>Plg : ${customerName} (${orderType})</div>
+      <div>Byr : ${paymentMethod}</div>
     </div>
-
-  `).join('');
-
-}
-
-
-
-async function processAndPrintCatalogOrder(rowNum) {
-
-  const order = pendingOrdersArr.find(o => o.rowNum === rowNum);
-
-  if (!order) return;
-
-
-
-  printReceiptFromCatalog(order);
-
-
-
-  try {
-
-    await fetch(API_URL, {
-
-      method: "POST",
-
-      mode: "no-cors",
-
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-
-      body: JSON.stringify({
-
-        action: "updateStatus",
-
-        rowNum: order.rowNum
-
-      })
-
-    });
-
-
-
-    alert(`Pesanan ${order.noInvoice} berhasil diproses!`);
-
-    checkPendingOrders();
-
-    closePendingOrdersModal();
-
-  } catch (err) {
-
-    console.error("Gagal update status:", err);
-
-    alert("Gagal memperbarui status di Google Sheet.");
-
-  }
-
-}
-
-
-
-function printReceiptFromCatalog(order) {
-
-  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-
-  const storeAddr = posSettings.address || storeConfig.Alamat || '';
-
-  const storeWa = posSettings.waPhone || storeConfig.WA || '';
-
-  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
-
-
-
-  let formattedItemsText = "";
-
-  let htmlItemsText = "";
-
-
-
-  let [rawItems, noteText] = (order.detailItems || "").split(/\|\s*Catatan:\s*/i);
-
-  let itemList = rawItems.split(",").map(i => i.trim()).filter(Boolean);
-
-
-
-  itemList.forEach(itemStr => {
-
-    const match = itemStr.match(/^(.*?)(?:\s*\((?:(\d+)x)\))?$/);
-
-    let name = itemStr;
-
-    let qty = 1;
-
-
-
-    if (match) {
-
-      name = match[1].trim();
-
-      if (match[2]) qty = parseInt(match[2], 10) || 1;
-
-    }
-
-
-
-    let product = allProducts.find(p => 
-
-      name.toLowerCase().includes(p.nama.toLowerCase()) || 
-
-      p.nama.toLowerCase().includes(name.toLowerCase())
-
-    );
-
-    let unitPrice = product ? (product.harga || 0) : 0;
-
-    let itemTotal = unitPrice * qty;
-
-
-
-    if (unitPrice > 0) {
-
-      formattedItemsText += `${name}\n  ${qty} x Rp${formatRupiah(unitPrice)} = Rp${formatRupiah(itemTotal)}\n`;
-
-    } else {
-
-      formattedItemsText += `${name}\n  ${qty}x\n`;
-
-    }
-
-
-
-    htmlItemsText += `
-
-      <div>${name}</div>
-
-      <div style="display:flex; justify-content:space-between;">
-
-        <span>${qty} x Rp${formatRupiah(unitPrice)}</span>
-
-        <span>Rp${formatRupiah(itemTotal)}</span>
-
-      </div>
-
-    `;
-
-  });
-
-
-
-  if (posSettings.printMode === 'rawbt') {
-
-    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `No: ${order.noInvoice}\nTgl: ${order.waktu}\nCust: ${order.customerName}\nBayar: ${order.jenisPembayaran}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `${formattedItemsText}`;
-
-    receiptText += `--------------------------------\n`;
-
-    if (noteText) receiptText += `Note: ${noteText.trim()}\n--------------------------------\n`;
-
-    receiptText += `TOTAL: Rp${formatRupiah(order.totalBelanja)}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `${storeBottom}\n\n\n`;
-
-
-
-    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-
-    window.location.href = intentUrl;
-
-  } else {
-
-    const receipt = document.getElementById("receipt-print");
-
-    if (!receipt) return;
-
-    receipt.style.display = "block";
-
-    receipt.innerHTML = `
-
-      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
-
-      <div style="text-align:center;">${storeAddr}</div>
-
-      <div style="text-align:center;">WA: ${storeWa}</div>
-
-      ----------------------------------<br>
-
-      No: ${order.noInvoice}<br>
-
-      Tgl: ${order.waktu}<br>
-
-      Cust: ${order.customerName}<br>
-
-      Bayar: ${order.jenisPembayaran}<br>
-
-      ----------------------------------<br>
-
-      ${htmlItemsText}
-
-      ----------------------------------<br>
-
-      ${noteText ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteText.trim()}</div>----------------------------------<br>` : ''}
-
-      <div style="display:flex; justify-content:space-between; font-weight:bold;">
-
-        <span>TOTAL:</span>
-
-        <span>Rp${formatRupiah(order.totalBelanja)}</span>
-
-      </div>
-
-      ----------------------------------<br>
-
-      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
-
-    `;
-
-    window.print();
-
-    receipt.style.display = "none";
-
-  }
-
-}
-
-
-
-function printReceipt(tx, note) {
-
-  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-
-  const storeAddr = posSettings.address || storeConfig.Alamat || '';
-
-  const storeWa = posSettings.waPhone || storeConfig.WA || '';
-
-  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
-
-
-
-  if (posSettings.printMode === 'rawbt') {
-
-    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-
-
-    cart.forEach(i => {
-
-      let itemLabel = i.product.nama;
-
-      if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
-
-      let itemTotal = i.qty * (i.product.harga || 0);
-
-      receiptText += `${itemLabel}\n  ${i.qty} x Rp${formatRupiah(i.product.harga)} = Rp${formatRupiah(itemTotal)}\n`;
-
-    });
-
-
-
-    receiptText += `--------------------------------\n`;
-
-    if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
-
-    receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
-
-    receiptText += `--------------------------------\n`;
-
-    receiptText += `${storeBottom}\n\n\n`;
-
-
-
-    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-
-    window.location.href = intentUrl;
-
-  } else {
-
-    const receipt = document.getElementById("receipt-print");
-
-    if (!receipt) return;
-
-    receipt.style.display = "block";
-
-    receipt.innerHTML = `
-
-      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
-
-      <div style="text-align:center;">${storeAddr}</div>
-
-      <div style="text-align:center;">WA: ${storeWa}</div>
-
-      ----------------------------------<br>
-
-      No: ${tx.noInvoice}<br>
-
-      Tgl: ${tx.waktu}<br>
-
-      Cust: ${tx.customerName}<br>
-
-      Bayar: ${tx.jenisPembayaran}<br>
-
-      ----------------------------------<br>
-
-      ${cart.map(i => `
-
-        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
-
-        <div style="display:flex; justify-content:space-between;">
-
-          <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
-
-          <span>Rp${formatRupiah(i.qty * (i.product.harga || 0))}</span>
-
+    <div style="border-bottom: 1px dashed #000; margin: 4px 0;"></div>
+    ${cart.map(item => `
+      <div style="font-size: 10px;">
+        <div style="font-weight: bold;">${item.name}</div>
+        ${item.variantDetail || item.toppingsText ? `<div>* ${[item.variantDetail, item.toppingsText].filter(Boolean).join(' | ')}</div>` : ''}
+        <div style="display: flex; justify-content: space-between;">
+          <span>${item.qty} x ${item.price.toLocaleString('id-ID')}</span>
+          <span>${(item.qty * item.price).toLocaleString('id-ID')}</span>
         </div>
-
-      `).join('')}
-
-      ----------------------------------<br>
-
-      ${note ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${note}</div>----------------------------------<br>` : ''}
-
-      <div style="display:flex; justify-content:space-between; font-weight:bold;">
-
-        <span>TOTAL:</span>
-
-        <span>Rp${formatRupiah(tx.totalBelanja)}</span>
-
       </div>
+    `).join('')}
+    <div style="border-bottom: 1px dashed #000; margin: 4px 0;"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">
+      <span>TOTAL</span>
+      <span>${formatRp(totalPrice)}</span>
+    </div>
+    <div style="border-bottom: 1px dashed #000; margin: 4px 0;"></div>
+    <div style="text-align: center; margin-top: 10px; font-size: 10px;">Terima Kasih Atas Kunjungannya!</div>
+  `;
 
-      ----------------------------------<br>
-
-      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
-
-    `;
-
-    window.print();
-
-    receipt.style.display = "none";
-
+  // Tampilkan Elemen Cetak Struk
+  const receiptContainer = document.getElementById('receipt-print');
+  if (receiptContainer) {
+    receiptContainer.innerHTML = receiptHTML;
+    receiptContainer.style.display = 'block';
   }
 
+  // Panggil dialog cetak browser
+  window.print();
+
+  // Reset State Setelah Transaksi Selesai
+  alert('Transaksi Berhasil!');
+  cart = [];
+  closeCheckoutModal();
+  updateCartUI();
+  renderProducts();
+
+  if (receiptContainer) {
+    receiptContainer.style.display = 'none';
+  }
 }
-
-
-
-loadData();
-
-setInterval(checkPendingOrders, 15000);
-
-checkPendingOrders(); 
-

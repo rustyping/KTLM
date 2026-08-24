@@ -124,16 +124,21 @@ function filterProducts() {
 // 1. Fungsi Render Kartu Produk ke Grid
 function renderProducts(products) {
   const grid = document.getElementById('productGrid');
+  if (!grid) return;
   grid.innerHTML = '';
 
   products.forEach(product => {
-    const itemInCart = cart.find(c => c.id === product.id);
+    // Menyesuaikan pembacaan nama & harga agar fleksibel
+    const pNama = product.nama || product.name || 'Tanpa Nama';
+    const pHarga = product.harga || product.price || 0;
+    const pGambar = fixImageUrl(product.gambar || product.image);
+
+    const itemInCart = cart.find(c => c.product.id === product.id);
     const qty = itemInCart ? itemInCart.qty : 0;
 
     const card = document.createElement('div');
     card.className = 'product-card';
     
-    // Saat gambar/judul diklik -> Buka Modal Detail (Gambar 3)
     card.onclick = (e) => {
       if (!e.target.classList.contains('card-qty-btn') && !e.target.classList.contains('btn-card-add')) {
         openDetailModal(product);
@@ -142,26 +147,24 @@ function renderProducts(products) {
 
     let actionButtonHTML = '';
     if (qty > 0) {
-      // Tampilan tombol - 1 + (Gambar 2 kanan)
       actionButtonHTML = `
         <div class="card-qty-control">
-          <button class="card-qty-btn" onclick="updateCartQty('${product.id}', -1)"/>-</button>
+          <button type="button" class="card-qty-btn" onclick="changeProductQtyInline('${product.id}', -1, event)">-</button>
           <span class="card-qty-num">${qty}</span>
-          <button class="card-qty-btn" onclick="updateCartQty('${product.id}', 1)"/>+</button>
+          <button type="button" class="card-qty-btn" onclick="changeProductQtyInline('${product.id}', 1, event)">+</button>
         </div>
       `;
     } else {
-      // Tampilan Tombol Add (Gambar 2 kiri)
       actionButtonHTML = `
-        <button class="btn-card-add" onclick="openDetailModalFromData('${product.id}')">Add</button>
+        <button type="button" class="btn-card-add" onclick="handleProductClick('${product.id}', event)">Add</button>
       `;
     }
 
     card.innerHTML = `
-      <img src="${product.image || 'placeholder.jpg'}" alt="${product.name}">
+      <img src="${pGambar}" alt="${pNama}">
       <div class="product-info">
-        <h4>${product.name}</h4>
-        <p class="price">Rp${product.price.toLocaleString('id-ID')}</p>
+        <h4>${pNama}</h4>
+        <p class="price">Rp${formatRupiah(pHarga)}</p>
         ${actionButtonHTML}
       </div>
     `;
@@ -169,20 +172,34 @@ function renderProducts(products) {
   });
 }
 
+
 // 2. Fungsi Buka Modal Detail Produk (Gambar 3)
 function openDetailModal(product) {
   selectedProductForModal = product;
   currentModalQty = 1;
 
-  document.getElementById('modal-header-title').innerText = product.name;
-  document.getElementById('modal-img').src = product.image || 'placeholder.jpg';
-  document.getElementById('modal-title').innerText = product.name;
-  document.getElementById('modal-desc').innerText = product.description || 'Pilihan menu lezat dan berkualitas.';
-  document.getElementById('modal-price').innerText = `Rp${product.price.toLocaleString('id-ID')}`;
-  document.getElementById('modal-notes').value = '';
-  document.getElementById('modal-qty-val').innerText = currentModalQty;
+  const pNama = product.nama || product.name || 'Tanpa Nama';
+  const pHarga = product.harga || product.price || 0;
+  const pGambar = fixImageUrl(product.gambar || product.image);
 
-  document.getElementById('detail-modal').style.display = 'flex';
+  const headTitle = document.getElementById('modal-header-title');
+  const modalImg = document.getElementById('modal-img');
+  const modalTitle = document.getElementById('modal-title');
+  const modalDesc = document.getElementById('modal-desc');
+  const modalPrice = document.getElementById('modal-price');
+  const modalNotes = document.getElementById('modal-notes');
+  const modalQty = document.getElementById('modal-qty-val');
+
+  if (headTitle) headTitle.innerText = pNama;
+  if (modalImg) modalImg.src = pGambar;
+  if (modalTitle) modalTitle.innerText = pNama;
+  if (modalDesc) modalDesc.innerText = product.deskripsi || product.description || 'Pilihan menu lezat dan berkualitas.';
+  if (modalPrice) modalPrice.innerText = `Rp${formatRupiah(pHarga)}`;
+  if (modalNotes) modalNotes.value = '';
+  if (modalQty) modalQty.innerText = currentModalQty;
+
+  const detailModal = document.getElementById('detail-modal');
+  if (detailModal) detailModal.style.display = 'flex';
 }
 
 function closeDetailModal() {

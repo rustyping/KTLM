@@ -140,5 +140,38 @@
   </div>
 
   <script src="index.js?v=2"></script>
+
+<div class="modal-overlay" id="productDetailModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="detailModalTitle">Detail Menu</span>
+      <button class="btn-close" onclick="closeProductDetailModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body" style="text-align: center;">
+      <img id="detailModalImg" src="" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
+      <h3 id="detailModalName" style="margin: 0 0 6px 0; color: #0f172a;"></h3>
+      <p id="detailModalPrice" style="font-weight: bold; color: #0284c7; font-size: 16px; margin-bottom: 15px;"></p>
+
+      <div class="form-group" style="text-align: left;">
+        <label for="detailModalNote" style="font-size: 12px; font-weight: bold; color: #64748b;">CATATAN UNTUK MENU INI</label>
+        <input type="text" id="detailModalNote" class="form-input" placeholder="Contoh: Pedas, Tanpa Bawang, Pisah Cuko...">
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 15px;">
+        <button class="btn-qty-action" onclick="changeDetailModalQty(-1)">-</button>
+        <span id="detailModalQty" class="qty-val-text" style="font-size: 18px;">1</span>
+        <button class="btn-qty-action" onclick="changeDetailModalQty(1)">+</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-confirm-pay" onclick="saveDetailModalCart()" style="background: #0284c7;">
+        + SIMPAN KE KERANJANG
+      </button>
+    </div>
+  </div>
+</div>
+  
 </body>
 </html>

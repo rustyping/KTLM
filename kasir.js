@@ -11,6 +11,8 @@ let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
 let lastTransaction = null;
+let selectedProductForModal = null;
+let currentModalQty = 1;
 
 let posSettings = {
   showImages: true,
@@ -119,66 +121,89 @@ function filterProducts() {
   renderProducts(filtered);
 }
 
+// 1. Fungsi Render Kartu Produk ke Grid
 function renderProducts(products) {
-  const grid = document.getElementById("productGrid");
-  if (!grid) return;
-  if (products.length === 0) {
-    grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Menu tidak ditemukan</p>';
-    return;
-  }
-  
-  grid.innerHTML = products.map(p => {
-    const totalQtyInCart = cart
-      .filter(c => c.product.id === p.id)
-      .reduce((sum, i) => sum + i.qty, 0);
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '';
 
-    const subCategories = getSubCategoriesForProduct(p);
-    const hasSub = subCategories.length > 0;
+  products.forEach(product => {
+    const itemInCart = cart.find(c => c.id === product.id);
+    const qty = itemInCart ? itemInCart.qty : 0;
+
+    const card = document.createElement('div');
+    card.className = 'product-card';
     
-    const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
-    const imgUrl = fixImageUrl(rawImgUrl);
-    const isSelected = totalQtyInCart > 0;
+    // Saat gambar/judul diklik -> Buka Modal Detail (Gambar 3)
+    card.onclick = (e) => {
+      if (!e.target.classList.contains('card-qty-btn') && !e.target.classList.contains('btn-card-add')) {
+        openDetailModal(product);
+      }
+    };
 
-    const qtyControlsHtml = `
-      <div class="qty-badge-inline" onclick="event.stopPropagation()">
-        <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
-        <input type="number" min="0" class="qty-input-inline" 
-               value="${totalQtyInCart}" 
-               onchange="onQtyDirectChange('${p.id}', this.value)"
-               onfocus="this.select()">
-        <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
-      </div>
-    `;
-
-    if (posSettings.showImages) {
-      return `
-        <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
-          <div class="product-img-wrapper">
-            <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
-            ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
-          </div>
-          <div class="product-details">
-            <div class="product-info-text">
-              <div class="product-title">${p.nama}</div>
-              <div class="product-price">Rp${formatRupiah(p.harga)}</div>
-            </div>
-            ${isSelected ? qtyControlsHtml : ''}
-          </div>
+    let actionButtonHTML = '';
+    if (qty > 0) {
+      // Tampilan tombol - 1 + (Gambar 2 kanan)
+      actionButtonHTML = `
+        <div class="card-qty-control">
+          <button class="card-qty-btn" onclick="updateCartQty('${product.id}', -1)"/>-</button>
+          <span class="card-qty-num">${qty}</span>
+          <button class="card-qty-btn" onclick="updateCartQty('${product.id}', 1)"/>+</button>
         </div>
       `;
     } else {
-      return `
-        <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
-          <div class="compact-details">
-            <div class="product-title">${p.nama}</div>
-            <div class="product-price">Rp${formatRupiah(p.harga)}</div>
-            ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
-          </div>
-          ${isSelected ? qtyControlsHtml : ''}
-        </div>
+      // Tampilan Tombol Add (Gambar 2 kiri)
+      actionButtonHTML = `
+        <button class="btn-card-add" onclick="openDetailModalFromData('${product.id}')">Add</button>
       `;
     }
-  }).join('');
+
+    card.innerHTML = `
+      <img src="${product.image || 'placeholder.jpg'}" alt="${product.name}">
+      <div class="product-info">
+        <h4>${product.name}</h4>
+        <p class="price">Rp${product.price.toLocaleString('id-ID')}</p>
+        ${actionButtonHTML}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// 2. Fungsi Buka Modal Detail Produk (Gambar 3)
+function openDetailModal(product) {
+  selectedProductForModal = product;
+  currentModalQty = 1;
+
+  document.getElementById('modal-header-title').innerText = product.name;
+  document.getElementById('modal-img').src = product.image || 'placeholder.jpg';
+  document.getElementById('modal-title').innerText = product.name;
+  document.getElementById('modal-desc').innerText = product.description || 'Pilihan menu lezat dan berkualitas.';
+  document.getElementById('modal-price').innerText = `Rp${product.price.toLocaleString('id-ID')}`;
+  document.getElementById('modal-notes').value = '';
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
+
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+}
+
+// 3. Ubah Jumlah Qty di Modal Detail
+function changeModalQty(delta) {
+  currentModalQty += delta;
+  if (currentModalQty < 1) currentModalQty = 1;
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
+}
+
+// 4. Simpan dari Modal Detail ke Keranjang
+function saveModalToCart() {
+  if (!selectedProductForModal) return;
+  
+  const note = document.getElementById('modal-notes').value;
+  addToCart(selectedProductForModal, currentModalQty, note);
+  
+  closeDetailModal();
 }
 
 // =========================================

@@ -35,7 +35,7 @@ function formatToWhatsappNumber(phoneStr) {
   return cleaned;
 }
 
-// Filter produk katalog
+// Filter produk khusus untuk katalog
 function isVisibleInCatalog(p) {
   if (!p) return false;
   const statusKatalog = (p.katalog || "Y").toString().trim().toUpperCase();
@@ -53,7 +53,7 @@ async function loadData() {
     allProducts = data.products || [];
     allSubcategories = data.subkategori || [];
 
-    // Header Nama Toko
+    // Mengubah Header Nama Toko (Otomatis mengambil dari Google Sheet, misalnya: Toko Damai)
     const titleEl = document.getElementById("storeTitleHeader");
     if (titleEl && storeConfig.Header) {
       titleEl.innerText = storeConfig.Header;
@@ -124,7 +124,7 @@ function filterProducts() {
   renderProducts(filtered);
 }
 
-// Render Produk dengan Tampilan ala Gacoan
+// Render Produk dengan Tampilan Grid
 function renderProducts(products) {
   const grid = document.getElementById("productGrid");
   if (!grid) return;
@@ -226,7 +226,7 @@ function changeQtyCard(productId, delta) {
   }
 }
 
-/* MODAL DETAIL PRODUK (POPUP KLIK GAMBAR ALA GACOAN) */
+/* MODAL DETAIL PRODUK */
 function openProductDetailModal(product) {
   currentDetailProduct = product;
   const existingItem = cart.find(function(item) { return item.product.id === product.id; });
@@ -518,7 +518,7 @@ function renderModalCartList() {
   }).join('');
 }
 
-/* PROSES SIMPAN KE SHEET & REDIRECT KE WHATSAPP (Aman iPad / iOS 12) */
+/* PROSES SIMPAN KE SHEET & REDIRECT KE WHATSAPP */
 async function submitCatalogOrder() {
   const custNameEl = document.getElementById("custNameInput");
   const custName = custNameEl ? custNameEl.value.trim() : "";
@@ -583,6 +583,7 @@ async function submitCatalogOrder() {
       body: JSON.stringify(payload)
     });
 
+    // Mengambil nomor WA dari pengaturan sheet, default jika kosong: 085838976880
     const targetWaRaw = storeConfig.WA || "085838976880";
     const targetWaFormatted = formatToWhatsappNumber(targetWaRaw);
 

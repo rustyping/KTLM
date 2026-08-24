@@ -230,3 +230,95 @@ input:checked + .slider:before { transform: translateX(20px); }
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+
+/* Style Kartu Produk ala Gacoan */
+.product-card {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+}
+
+.product-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.product-info {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
+}
+
+.product-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #0f172a;
+}
+
+.product-price {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0284c7; /* Warna Tema */
+  margin-bottom: 8px;
+}
+
+/* Tombol Add (Gacoan Style) */
+.btn-add-item {
+  width: 100%;
+  padding: 6px 12px;
+  background: #ffffff;
+  color: #0284c7;
+  border: 1px solid #0284c7;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-item:active {
+  background: #e0f2fe;
+}
+
+/* Kontrol Jumlah Inline [ - 1 + ] */
+.qty-control-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 3px 6px;
+  background: #f8fafc;
+}
+
+.btn-qty-action {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #0284c7;
+  background: #ffffff;
+  color: #0284c7;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.qty-val-text {
+  font-weight: bold;
+  font-size: 14px;
+  color: #0f172a;
+}

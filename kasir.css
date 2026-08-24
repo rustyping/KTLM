@@ -840,3 +840,38 @@ input:checked + .slider:before {
   font-size: 14px;
   color: #0f172a;
 }
+
+
+/* Posisi tombol counter di bagian bawah kartu */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.product-card-footer {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.qty-control-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.modal-field {
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modal-field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+}

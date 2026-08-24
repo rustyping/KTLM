@@ -16,22 +16,20 @@ let currentModalQty = 1;
 
 // 1. Membuka Modal saat Gambar / Kartu Diklik
 function openDetailModal(productId) {
-  const product = PRODUCTS.find(p => p.id === productId);
+  const product = allProducts.find(p => p.id === productId); // Gunakan allProducts
   if (!product) return;
 
   currentModalProduct = product;
   currentModalQty = 1;
 
-  // Isi data produk ke modal
-  document.getElementById('modal-img').src = product.image || 'placeholder.jpg';
-  document.getElementById('modal-title').innerText = product.name;
-  document.getElementById('modal-price').innerText = formatRp(product.price);
-  document.getElementById('modal-qty-val').innerText = currentModalQty;
+  const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   
-  // Reset isi catatan tambahan
+  document.getElementById('modal-img').src = fixImageUrl(rawImgUrl);
+  document.getElementById('modal-title').innerText = product.nama; // Gunakan .nama
+  document.getElementById('modal-price').innerText = "Rp" + formatRupiah(product.harga); // Gunakan formatRupiah & .harga
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
   document.getElementById('modal-notes').value = '';
 
-  // Tampilkan Modal
   document.getElementById('detail-modal').style.display = 'flex';
 }
 
@@ -49,18 +47,10 @@ function changeModalQty(delta) {
 // 3. Menyimpan Hasil Pilihan + Catatan dari Modal ke Keranjang
 function saveModalToCart() {
   if (!currentModalProduct) return;
-
   const notesInput = document.getElementById('modal-notes').value.trim();
 
-  // Simpan item ke array Cart
-  addToCart({
-    id: currentModalProduct.id,
-    name: currentModalProduct.name,
-    price: currentModalProduct.price,
-    qty: currentModalQty,
-    notes: notesInput // Catatan tersimpan di item keranjang
-  });
-
+  // Panggil addToCart sesuai signature (product, qty, subVariant/notes)
+  addToCart(currentModalProduct, currentModalQty, notesInput);
   closeDetailModal();
 }
 
@@ -182,59 +172,30 @@ function renderProducts(products) {
       .filter(c => c.product.id === p.id)
       .reduce((sum, i) => sum + i.qty, 0);
 
-    const subCategories = getSubCategoriesForProduct(p);
-    const hasSub = subCategories.length > 0;
-    
-    // Pembacaan gambar dari Kolom K ('Link Gambar')
     const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
     const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
 
-    if (posSettings.showImages) {
-      return `
-        <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
-          <div class="product-img-wrapper">
-            <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
-            ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
-          </div>
-          
-          <div class="product-details">
-            <div class="product-info-text">
-              <div class="product-title">${p.nama}</div>
-              <div class="product-price">Rp${formatRupiah(p.harga)}</div>
-            </div>
-
-            ${isSelected ? `
-              <div class="qty-badge-inline" onclick="event.stopPropagation()">
-                <input type="number" min="0" class="qty-input-inline" 
-                       value="${totalQtyInCart}" 
-                       onchange="onQtyDirectChange('${p.id}', this.value)"
-                       onfocus="this.select()">
-              </div>
-            ` : ''}
-          </div>
+    return `
+      <div class="product-card ${isSelected ? 'has-selected' : ''}">
+        <div class="product-img-wrapper" onclick="openDetailModal('${p.id}')">
+          <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
         </div>
-      `;
-    } else {
-      return `
-        <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
-          <div class="compact-details">
+        
+        <div class="product-details">
+          <div class="product-info-text" onclick="openDetailModal('${p.id}')">
             <div class="product-title">${p.nama}</div>
             <div class="product-price">Rp${formatRupiah(p.harga)}</div>
-            ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
           </div>
-          
-          ${isSelected ? `
-            <div class="qty-badge-inline" onclick="event.stopPropagation()">
-              <input type="number" min="0" class="qty-input-inline" 
-                     value="${totalQtyInCart}" 
-                     onchange="onQtyDirectChange('${p.id}', this.value)"
-                     onfocus="this.select()">
-            </div>
-          ` : ''}
+
+          <div class="qty-badge-inline" onclick="event.stopPropagation()">
+            <button class="btn-qty-mini" onclick="updateDirectQty('${p.id}', ${totalQtyInCart - 1})">-</button>
+            <span class="counter-val">${totalQtyInCart}</span>
+            <button class="btn-qty-mini" onclick="handleProductClick('${p.id}', event)">+</button>
+          </div>
         </div>
-      `;
-    }
+      </div>
+    `;
   }).join('');
 }
 

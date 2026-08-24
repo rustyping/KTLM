@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Katalog Online - KTLM</title>
   
-  <!-- Sudah disesuaikan ke file CSS yang baru dipecah -->
+  <!-- File CSS Utama -->
   <link rel="stylesheet" href="index.css">
   
-  <!-- Override Warna Khusus Katalog (Tanpa Mengganggu Tampilan Kasir) -->
+  <!-- Override Warna Khusus Katalog -->
   <style>
     .app-header {
       background: #0284c7 !important; /* Biru Laut */
@@ -31,10 +31,10 @@
       border-color: #0284c7 !important;
       background: #f0f9ff !important;
     }
-    .btn-qty-card, .btn-qty-mini, .btn-counter-mini {
+    .btn-qty-card, .btn-qty-mini, .btn-counter-mini, .btn-qty-action {
       background: #0284c7 !important;
     }
-    .btn-qty-card:active, .btn-qty-mini:active, .btn-counter-mini:active {
+    .btn-qty-card:active, .btn-qty-mini:active, .btn-counter-mini:active, .btn-qty-action:active {
       background-color: #0369a1 !important;
     }
     .qty-input-inline, .counter-val {
@@ -125,7 +125,7 @@
         <!-- Alamat / Catatan -->
         <div class="form-group">
           <label for="orderNote">ALAMAT / CATATAN KHUSUS</label>
-          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Kirim ke Jl. Melati No 12, Pedas, Tanpa Cuka..."></textarea>
+          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Kirim ke Jl. Melati No 12, Pedas..."></textarea>
         </div>
       </div>
 
@@ -151,18 +151,26 @@
       
       <div class="modal-body" style="text-align: center;">
         <img id="detailModalImg" src="" alt="Gambar Menu" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
-        <h3 id="detailModalName" style="margin: 0 0 6px 0; color: #0f172a;"></h3>
+        
+        <!-- 1. NAMA MENU -->
+        <h3 id="detailModalName" style="margin: 0 0 4px 0; color: #0f172a;"></h3>
+        
+        <!-- 2. KETERANGAN BARU (Diambil dari Kolom F) -->
+        <p id="detailModalDesc" style="color: #64748b; font-size: 13px; margin: 0 0 10px 0; line-height: 1.4;"></p>
+        
+        <!-- 3. HARGA -->
         <p id="detailModalPrice" style="font-weight: bold; color: #0284c7; font-size: 16px; margin-bottom: 15px;"></p>
 
         <div class="form-group" style="text-align: left;">
           <label for="detailModalNote" style="font-size: 12px; font-weight: bold; color: #64748b;">CATATAN UNTUK MENU INI</label>
-          <input type="text" id="detailModalNote" class="form-input" placeholder="Contoh: Pedas, Tanpa Bawang, Pisah Cuko...">
+          <input type="text" id="detailModalNote" class="form-input" placeholder="Contoh: Pedas, Tanpa Bawang...">
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 15px;">
-          <button class="btn-qty-action" onclick="changeDetailModalQty(-1)">-</button>
-          <span id="detailModalQty" class="qty-val-text" style="font-size: 18px;">1</span>
-          <button class="btn-qty-action" onclick="changeDetailModalQty(1)">+</button>
+        <!-- INPUT QTY BISA DIEDIT MANUAL -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px;">
+          <button class="btn-qty-action" onclick="changeDetailModalQty(-1)" style="width: 36px; height: 36px; border-radius: 6px; border: none; color: white; font-weight: bold; font-size: 18px; cursor: pointer;">-</button>
+          <input type="number" id="detailModalQty" value="1" min="1" style="width: 65px; height: 36px; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+          <button class="btn-qty-action" onclick="changeDetailModalQty(1)" style="width: 36px; height: 36px; border-radius: 6px; border: none; color: white; font-weight: bold; font-size: 18px; cursor: pointer;">+</button>
         </div>
       </div>
 

@@ -3,205 +3,370 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KTLM Kitchen - POS Dapur</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Kasir POS - KTLM Kitchen</title>
+  <link rel="stylesheet" href="style.css?v=3">
+  
+  <!-- Style Khusus Halaman Kasir (Tampilan ala Gacoan & Split-Screen POS) -->
+  <style>
+    :root {
+      --primary-color: #0284c7; /* Biru Utama */
+      --primary-dark: #0369a1;
+      --bg-gray: #f8fafc;
+    }
+
+    body {
+      background-color: var(--bg-gray);
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .kasir-header {
+      background: var(--primary-color);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .kasir-header h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    /* Container Split Screen untuk Kasir Desktop/Tablet */
+    .kasir-container {
+      display: flex;
+      gap: 15px;
+      padding: 15px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .kasir-products-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Kartu Produk ala Gacoan */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .product-card {
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e2e8f0;
+    }
+
+    .product-img-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      background: #f1f5f9;
+    }
+
+    .product-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .variant-tag {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(2, 132, 199, 0.9);
+      color: white;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    .product-info {
+      padding: 8px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+
+    .product-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .product-price {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary-color);
+      margin-bottom: 8px;
+    }
+
+    /* Tombol Add (Gacoan Style) */
+    .btn-add-item {
+      width: 100%;
+      padding: 6px 0;
+      background: #ffffff;
+      color: var(--primary-color);
+      border: 1.5px solid var(--primary-color);
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-add-item:active {
+      background: #e0f2fe;
+    }
+
+    /* Kontrol Jumlah Inline [ - 1 + ] */
+    .qty-control-inline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1.5px solid var(--primary-color);
+      border-radius: 20px;
+      padding: 2px 4px;
+      background: #f0f9ff;
+    }
+
+    .btn-qty-action {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .qty-val-text {
+      font-weight: bold;
+      font-size: 13px;
+      color: var(--primary-dark);
+    }
+
+    /* Quick Cash Buttons untuk Kasir */
+    .quick-cash-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .btn-quick-cash {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 6px 2px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #334155;
+    }
+
+    .btn-quick-cash:hover {
+      background: #e2e8f0;
+    }
+
+    /* Layout Layar HP */
+    @media (max-width: 768px) {
+      .kasir-container {
+        flex-direction: column;
+        padding: 10px;
+      }
+      .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <header class="app-header">
-    <h1>KTLM Kitchen</h1>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <!-- Tombol Pesanan Katalog Masuk -->
-      <button class="btn-settings" onclick="openPendingOrdersModal()" style="position:relative;" title="Pesanan Masuk Katalog">
-        🛒 <span id="orderBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#d32f2f; color:white; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:bold;">0</span>
-      </button>
-      <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
+  <!-- Header Kasir -->
+  <header class="kasir-header">
+    <div>
+      <h1 id="storeTitleHeader">Kasir - KTLM Kitchen</h1>
+      <span style="font-size: 11px; opacity: 0.9;">Point of Sale (POS)</span>
     </div>
+    <a href="index.html" style="color: white; text-decoration: none; font-size: 12px; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 15px;">🛍️ Buka Katalog</a>
   </header>
 
-  <!-- Container Utama -->
-  <div class="main-container">
-    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu..." oninput="filterProducts()">
+  <!-- Container Utama Split Screen -->
+  <div class="kasir-container">
+    
+    <!-- SISI KIRI: Katalog Menu & Pencarian -->
+    <div class="kasir-products-section">
+      <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu kasir..." oninput="filterProducts()">
 
-    <div class="category-bar" id="categoryBar">
-      <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
+      <div class="category-bar" id="categoryBar">
+        <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
+      </div>
+
+      <div class="product-grid" id="productGrid">
+        <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
+      </div>
     </div>
 
-    <!-- Grid Produk -->
-    <div class="product-grid" id="productGrid">
-      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
-    </div>
   </div>
 
-  <!-- Bottom Action Bar -->
+  <!-- Bottom Bar Pesanan (Tampil di Layar HP) -->
   <div class="bottom-bar">
     <div class="bottom-bar-info">
       <span class="bottom-bar-items" id="barItemCount">0 Item</span>
       <span class="bottom-bar-total" id="barTotalAmount">Rp0</span>
     </div>
     <button class="btn-checkout" id="btnOpenCheckout" onclick="openCheckoutModal()" disabled>
-      Lanjutkan Pesanan →
+      Bayar / Transaksi →
     </button>
   </div>
 
-  <!-- Modal Pilih Subkategori / Variasi & Mix Counter -->
-  <div class="modal-overlay" id="subCategoryModal">
+  <!-- MODAL DETAIL PRODUK (Popup Klik Gambar Ala Gacoan) -->
+  <div class="modal-overlay" id="productDetailModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title" id="subModalTitle">Pilih Variasi & Penyajian</span>
-        <button class="btn-close" onclick="closeSubModal()">&times;</button>
+        <span class="modal-title" id="detailModalTitle">Detail Menu</span>
+        <button class="btn-close" onclick="closeProductDetailModal()">&times;</button>
       </div>
-      <div class="modal-body" id="subModalBody"></div>
+      
+      <div class="modal-body" style="text-align: center;">
+        <img id="detailModalImg" src="" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;">
+        <h3 id="detailModalName" style="margin: 0 0 4px 0; color: #0f172a;"></h3>
+        <p id="detailModalPrice" style="font-weight: bold; color: #0284c7; font-size: 16px; margin-bottom: 12px;"></p>
+
+        <!-- Catatan Khusus -->
+        <div class="form-group" style="text-align: left;">
+          <label for="detailModalNote" style="font-size: 11px; font-weight: bold; color: #64748b;">CATATAN KHUSUS (DAPUR)</label>
+          <input type="text" id="detailModalNote" class="form-input" placeholder="Contoh: Tanpa Cuko, Pedas Sedang, Bungkus...">
+        </div>
+
+        <!-- Pengatur Jumlah -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 15px;">
+          <button type="button" class="btn-qty-action" style="width:32px; height:32px; font-size:18px;" onclick="changeDetailModalQty(-1)">-</button>
+          <span id="detailModalQty" class="qty-val-text" style="font-size: 20px;">1</span>
+          <button type="button" class="btn-qty-action" style="width:32px; height:32px; font-size:18px;" onclick="changeDetailModalQty(1)">+</button>
+        </div>
+      </div>
+
       <div class="modal-footer">
-        <button class="btn-confirm-pay" onclick="confirmSubCategorySelection()">+ TAMBAHKAN KE PESANAN</button>
+        <button type="button" class="btn-confirm-pay" onclick="saveDetailModalCart()" style="background: #0284c7;">
+          + MASUKKAN KERANJANG
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Checkout Kasir Langsung -->
+  <!-- MODAL PILIH VARIASI / SUBKATEGORI -->
+  <div class="modal-overlay" id="subCategoryModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="subModalTitle">Pilih Variasi</span>
+        <button class="btn-close" onclick="closeSubModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="subModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn-confirm-pay" onclick="confirmSubCategorySelection()">+ TAMBAHKAN KE KERANJANG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PEMBAYARAN KASIR (CHECKOUT & KEMBALIAN) -->
   <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title">Konfirmasi Pesanan</span>
+        <span class="modal-title">Transaksi Kasir</span>
         <button class="btn-close" onclick="closeCheckoutModal()">&times;</button>
       </div>
       
       <div class="modal-body">
-        <!-- 1. RINCIAN PESANAN (DITAMPILKAN PERTAMA) -->
+        <!-- Rincian Pesanan -->
         <div class="form-group">
-          <label style="font-weight: bold; color: #2e7d32; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
+          <label style="font-weight: bold; color: #0284c7; margin-bottom: 6px; display: block;">RINCIAN ORDER</label>
           <div id="modalCartList"></div>
         </div>
 
-        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 12px 0;">
 
-        <!-- 2. PELANGGAN -->
+        <!-- Nama Pelanggan / Meja -->
         <div class="form-group">
-          <label for="customerSelect">PELANGGAN / CUSTOMER</label>
-          <select id="customerSelect" class="form-select">
-            <option value="Umum">Umum / Walk-in</option>
-          </select>
+          <label for="custNameInput">NAMA PELANGGAN / MEJA *</label>
+          <input type="text" id="custNameInput" class="form-input" placeholder="Contoh: Bpk Ahmad / Meja 05" required>
         </div>
 
-        <!-- 3. METODE PEMBAYARAN -->
+        <!-- Metode Pembayaran -->
         <div class="form-group">
           <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
-          <select id="paymentMethodSelect" class="form-select">
-            <option value="Tunai">Tunai</option>
+          <select id="paymentMethodSelect" class="form-select" onchange="toggleCashInput()">
+            <option value="Tunai">Tunai / Cash</option>
             <option value="QRIS">QRIS</option>
             <option value="Transfer">Transfer Bank</option>
+            <option value="EDC">Kartu Debit / EDC</option>
           </select>
         </div>
 
-        <!-- 4. CATATAN KHUSUS -->
-        <div class="form-group">
-          <label for="orderNote">CATATAN KHUSUS / NOTE</label>
-          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
+        <!-- Kalkulator Uang Diterima & Kembalian Kasir -->
+        <div id="cashCalculationSection" class="form-group">
+          <label for="cashReceivedInput">UANG DITERIMA (RP)</label>
+          <input type="number" id="cashReceivedInput" class="form-input" placeholder="0" oninput="calculateChange()">
           
-          <div class="quick-chips">
-            <button class="chip-btn" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
-            <button class="chip-btn" onclick="addQuickNote('Makan di Tempat')">+ Dine-In</button>
-            <button class="chip-btn" onclick="addQuickNote('Pedas')">+ Pedas</button>
-            <button class="chip-btn" onclick="addQuickNote('Sedang')">+ Pedas Sedang</button>
-            <button class="chip-btn" onclick="addQuickNote('Tanpa Cuka')">+ Tanpa Cuka</button>
+          <!-- Tombol Uang Pas / Cepat -->
+          <div class="quick-cash-grid">
+            <button type="button" class="btn-quick-cash" onclick="setExactCash()">Uang Pas</button>
+            <button type="button" class="btn-quick-cash" onclick="addQuickCash(10000)">10rb</button>
+            <button type="button" class="btn-quick-cash" onclick="addQuickCash(20000)">20rb</button>
+            <button type="button" class="btn-quick-cash" onclick="addQuickCash(50000)">50rb</button>
+            <button type="button" class="btn-quick-cash" onclick="addQuickCash(100000)">100rb</button>
           </div>
+
+          <div style="margin-top: 10px; padding: 8px; background: #e0f2fe; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; color: #0369a1; font-size: 13px;">KEMBALIAN:</span>
+            <span id="cashChangeDisplay" style="font-weight: bold; color: #0369a1; font-size: 16px;">Rp0</span>
+          </div>
+        </div>
+
+        <!-- Catatan Transaksi -->
+        <div class="form-group">
+          <label for="orderNote">CATATAN TRANSAKSI</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="Catatan tambahan kasir..."></textarea>
         </div>
       </div>
 
       <div class="modal-footer">
         <div class="summary-line">
-          <span>TOTAL:</span>
+          <span>TOTAL BAYAR:</span>
           <span id="modalTotalAmount">Rp0</span>
         </div>
-        <button class="btn-confirm-pay" onclick="processPayment()">BAYAR & PRINT STRUK</button>
+        <button type="button" class="btn-confirm-pay" id="btnSubmitOrder" onclick="submitCashierOrder()" style="background: #0284c7; color: white;">
+          💾 SIMPAN & PROSES TRANSAKSI
+        </button>
       </div>
     </div>
   </div>
 
-  
-  <!-- Modal Pesanan Masuk (Katalog Online) -->
-  <div class="modal-overlay" id="pendingOrdersModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <span class="modal-title">🛒 Pesanan Masuk Katalog</span>
-        <button class="btn-close" onclick="closePendingOrdersModal()">&times;</button>
-      </div>
-      <div class="modal-body" id="pendingOrdersList">
-        <p style="text-align:center; color:#6c757d; padding:20px;">Memuat pesanan...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Pengaturan -->
-  <div class="modal-overlay" id="settingsModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <span class="modal-title">⚙️ Pengaturan POS & Tampilan</span>
-        <button class="btn-close" onclick="closeSettingsModal()">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="form-group">
-          <label>TAMPILAN GAMBAR MENU</label>
-          <div class="toggle-container">
-            <span style="font-size: 13px; font-weight: 600; color: #333;">Tampilkan Gambar Produk</span>
-            <label class="switch">
-              <input type="checkbox" id="settingShowImages">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="settingPrintMode">METODE PENCETAKAN STRUK</label>
-          <select id="settingPrintMode" class="form-select">
-            <option value="rawbt">Direct RawBT App (Rekomendasi HP Android)</option>
-            <option value="browser">Sistem Browser Native (Window.print)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="settingPaperSize">UKURAN KERTAS PRINTER</label>
-          <select id="settingPaperSize" class="form-select">
-            <option value="58mm">58 mm (Printer Kasir Mini)</option>
-            <option value="80mm">80 mm (Printer Kasir Sedang/Besar)</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="settingHeaderStore">NAMA TOKO (HEADER)</label>
-          <input type="text" id="settingHeaderStore" class="form-input" placeholder="KTLM Kitchen">
-        </div>
-
-        <div class="form-group">
-          <label for="settingAddressStore">ALAMAT / KETERANGAN</label>
-          <input type="text" id="settingAddressStore" class="form-input" placeholder="Jl. Laks Martadinata 59D">
-        </div>
-
-        <div class="form-group">
-          <label for="settingWaStore">NOMOR WA / TELP</label>
-          <input type="text" id="settingWaStore" class="form-input" placeholder="085838976880">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-confirm-pay" onclick="savePrinterSettings()">SIMPAN PENGATURAN</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="receipt-print"></div>
-
-  <script src="kasir.js"></script>
-  
-  <!-- Notification Bubble Cetak Ulang -->
-  <div id="toastReprint" class="toast-reprint" style="display: none;">
-    <span>✅ Transaksi Berhasil</span>
-    <button type="button" class="btn-reprint" onclick="cetakUlangStrukTerakhir()">🖨️ Cetak Ulang Struk</button>
-    <button type="button" class="btn-close-toast" onclick="hideReprintToast()">✕</button>
-  </div>
-
-  
+  <!-- Script Kasir JS (Aman iOS 12 / Safari Lama) -->
+  <script src="kasir.js?v=3"></script>
 </body>
 </html>

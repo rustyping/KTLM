@@ -217,6 +217,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   to { transform: translateY(0); opacity: 1; }
 }
 
+
 /* Sembunyikan panah atas-bawah bawaan browser di Chrome, Safari, Edge, Opera */
 .qty-input-inline::-webkit-outer-spin-button,
 .qty-input-inline::-webkit-inner-spin-button {
@@ -228,90 +229,4 @@ input:checked + .slider:before { transform: translateX(20px); }
 .qty-input-inline[type=number] {
   -moz-appearance: textfield;
   appearance: textfield;
-}
-
-/* ========================================================= */
-/* TAMBAHAN FITUR: MODAL DETAIL MENU (POPUP BUBBLE)          */
-/* ========================================================= */
-
-.modal-body.text-center { text-align: center; }
-
-.modal-product-img {
-  width: 100%;
-  max-height: 200px;
-  object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 12px;
-}
-
-.modal-product-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #212529;
-  margin-bottom: 4px;
-}
-
-.modal-product-desc {
-  font-size: 13px;
-  color: #6c757d;
-  margin-bottom: 8px;
-}
-
-.modal-product-price {
-  font-size: 16px;
-  font-weight: 800;
-  color: #2e7d32;
-  margin-bottom: 16px;
-}
-
-/* Controls Qty (- [ 1 ] +) di Modal Detail */
-.qty-control-modal {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.btn-modal-qty {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid #ced4da;
-  background: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  color: #212529;
-  cursor: pointer;
-}
-
-.modal-qty-box {
-  width: 60px;
-  height: 36px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 15px;
-  color: #212529;
-}
-
-/* Tombol Merah "+ SIMPAN KE KERANJANG" */
-.btn-save-cart-red {
-  width: 100%;
-  background: #e53935;
-  color: #fff;
-  border: none;
-  padding: 14px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.btn-save-cart-red:active {
-  background: #c62828;
 }

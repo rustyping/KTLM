@@ -59,6 +59,66 @@
     </div>
   </div>
 
+<!-- TEMPLATE KARTU PRODUK (kasir.html) -->
+<div class="product-card">
+  <!-- Klik gambar/judul untuk membuka layar tambahan (modal) -->
+  <div class="product-thumb" onclick="openDetailModal(PRODUCT_ID)">
+    <img src="IMAGE_URL" alt="Nama Produk" />
+  </div>
+  
+  <div class="product-info">
+    <h4 onclick="openDetailModal(PRODUCT_ID)">Nama Produk</h4>
+    <p class="price">Rp 15.000</p>
+  </div>
+
+  <!-- Posisi counter - + tepat di bawah kartu -->
+  <div class="product-card-footer">
+    <div class="qty-control-bottom">
+      <button class="btn-qty" onclick="updateCardQty(PRODUCT_ID, -1)">-</button>
+      <span class="qty-count" id="qty-card-PRODUCT_ID">0</span>
+      <button class="btn-qty" onclick="updateCardQty(PRODUCT_ID, 1)">+</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL POP-UP LAYAR TAMBAHAN -->
+<div id="detail-modal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeDetailModal()">&times;</span>
+    
+    <div id="modal-product-header">
+      <img id="modal-img" src="" alt="" />
+      <h3 id="modal-title"></h3>
+      <p id="modal-price"></p>
+    </div>
+
+    <!-- Opsi Level / Variasi (jika ada) -->
+    <div id="modal-variants-container"></div>
+
+    <!-- KOLOM CATATAN TAMBAHAN -->
+    <div class="modal-field">
+      <label for="modal-notes"><b>Catatan Tambahan:</b></label>
+      <textarea 
+        id="modal-notes" 
+        rows="3" 
+        placeholder="Contoh: Jangan pedas, tidak pakai kuah, banyakin bumbu..."
+      ></textarea>
+    </div>
+
+    <!-- KONTROL QTY & TOMBOL SIMPAN DI MODAL -->
+    <div class="modal-footer">
+      <div class="qty-control-bottom">
+        <button class="btn-qty" onclick="changeModalQty(-1)">-</button>
+        <span id="modal-qty-val">1</span>
+        <button class="btn-qty" onclick="changeModalQty(1)">+</button>
+      </div>
+      <button class="btn-add-cart" onclick="saveModalToCart()">Masukkan Pesanan</button>
+    </div>
+  </div>
+</div>
+
+  
+
   <!-- Modal Checkout Kasir Langsung -->
   <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">

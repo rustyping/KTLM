@@ -35,7 +35,7 @@ function formatToWhatsappNumber(phoneStr) {
   return cleaned;
 }
 
-// Filter produk khusus untuk katalog
+// Filter produk katalog
 function isVisibleInCatalog(p) {
   if (!p) return false;
   const statusKatalog = (p.katalog || "Y").toString().trim().toUpperCase();
@@ -53,7 +53,7 @@ async function loadData() {
     allProducts = data.products || [];
     allSubcategories = data.subkategori || [];
 
-    // Mengubah Header Nama Toko (Otomatis mengambil dari Google Sheet, misalnya: Toko Damai)
+    // Header Nama Toko
     const titleEl = document.getElementById("storeTitleHeader");
     if (titleEl && storeConfig.Header) {
       titleEl.innerText = storeConfig.Header;
@@ -124,7 +124,7 @@ function filterProducts() {
   renderProducts(filtered);
 }
 
-// Render Produk dengan Tampilan Grid
+// Render Produk dengan Input Qty yang Bisa Diketik Manual di Kartu Depan
 function renderProducts(products) {
   const grid = document.getElementById("productGrid");
   if (!grid) return;
@@ -147,12 +147,21 @@ function renderProducts(products) {
 
     let buttonHtml = '';
     if (isSelected) {
-      buttonHtml = 
-        '<div class="qty-control-inline" onclick="event.stopPropagation()">' +
-          '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', -1)">-</button>' +
-          '<span class="qty-val-text">' + totalQtyInCart + '</span>' +
-          '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', 1)">+</button>' +
-        '</div>';
+      if (hasSub) {
+        buttonHtml = 
+          '<div class="qty-control-inline" onclick="event.stopPropagation()">' +
+            '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', -1)">-</button>' +
+            '<span class="qty-val-text">' + totalQtyInCart + '</span>' +
+            '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', 1)">+</button>' +
+          '</div>';
+      } else {
+        buttonHtml = 
+          '<div class="qty-control-inline" onclick="event.stopPropagation()">' +
+            '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', -1)">-</button>' +
+            '<input type="number" class="qty-input-inline" value="' + totalQtyInCart + '" min="1" style="width: 42px; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: bold; font-size: 14px; outline: none;" onchange="handleFrontQtyManualChange(\'' + p.id + '\', this.value)" onclick="event.stopPropagation()">' +
+            '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', 1)">+</button>' +
+          '</div>';
+      }
     } else {
       buttonHtml = 
         '<button type="button" class="btn-add-item" onclick="handleAddButtonClick(\'' + p.id + '\', event)">Add</button>';
@@ -173,6 +182,30 @@ function renderProducts(products) {
         '</div>' +
       '</div>';
   }).join('');
+}
+
+// Handle Input Manual Qty di Depan Kartu
+function handleFrontQtyManualChange(productId, val) {
+  let newQty = parseInt(val);
+  if (isNaN(newQty) || newQty < 0) newQty = 0;
+
+  const product = allProducts.find(function(p) { return p.id === productId; });
+  if (!product) return;
+
+  const existingIndex = cart.findIndex(function(c) { return c.product.id === productId; });
+
+  if (existingIndex !== -1) {
+    if (newQty === 0) {
+      cart.splice(existingIndex, 1);
+    } else {
+      cart[existingIndex].qty = newQty;
+    }
+  } else if (newQty > 0) {
+    cart.push({ product: product, qty: newQty, subVariant: "", note: "" });
+  }
+
+  updateCartUI();
+  filterProducts();
 }
 
 // Handle Klik Tombol Add
@@ -226,7 +259,7 @@ function changeQtyCard(productId, delta) {
   }
 }
 
-/* MODAL DETAIL PRODUK */
+/* MODAL DETAIL PRODUK (POPUP KLIK GAMBAR) */
 function openProductDetailModal(product) {
   currentDetailProduct = product;
   const existingItem = cart.find(function(item) { return item.product.id === product.id; });
@@ -235,9 +268,16 @@ function openProductDetailModal(product) {
   const titleEl = document.getElementById("detailModalTitle");
   if (titleEl) titleEl.innerText = product.nama;
 
+  // 1. NAMA MENU
   const nameEl = document.getElementById("detailModalName");
   if (nameEl) nameEl.innerText = product.nama;
 
+  // 2. KETERANGAN BARU (Diambil dari Kolom F / index 5 / property keterangan)
+  const descEl = document.getElementById("detailModalDesc");
+  const descText = product.keterangan || product.Keterangan || product['Keterangan'] || product.deskripsi || product[5] || "";
+  if (descEl) descEl.innerText = descText;
+
+  // 3. HARGA
   const priceEl = document.getElementById("detailModalPrice");
   if (priceEl) priceEl.innerText = "Rp" + (product.harga || 0).toLocaleString('id-ID');
 
@@ -250,8 +290,12 @@ function openProductDetailModal(product) {
   const noteEl = document.getElementById("detailModalNote");
   if (noteEl) noteEl.value = existingItem ? (existingItem.note || "") : "";
 
+  // Set nilai Qty ke Input
   const qtyEl = document.getElementById("detailModalQty");
-  if (qtyEl) qtyEl.innerText = currentDetailQty;
+  if (qtyEl) {
+    if ('value' in qtyEl) qtyEl.value = currentDetailQty;
+    else qtyEl.innerText = currentDetailQty;
+  }
 
   const modal = document.getElementById("productDetailModal");
   if (modal) modal.style.display = "flex";
@@ -264,14 +308,25 @@ function closeProductDetailModal() {
 }
 
 function changeDetailModalQty(delta) {
-  currentDetailQty += delta;
-  if (currentDetailQty < 1) currentDetailQty = 1;
   const qtyEl = document.getElementById("detailModalQty");
-  if (qtyEl) qtyEl.innerText = currentDetailQty;
+  let currentVal = parseInt(qtyEl ? (qtyEl.value || qtyEl.innerText) : currentDetailQty) || 1;
+  currentVal += delta;
+  if (currentVal < 1) currentVal = 1;
+  currentDetailQty = currentVal;
+  
+  if (qtyEl) {
+    if ('value' in qtyEl) qtyEl.value = currentDetailQty;
+    else qtyEl.innerText = currentDetailQty;
+  }
 }
 
 function saveDetailModalCart() {
   if (!currentDetailProduct) return;
+
+  const qtyEl = document.getElementById("detailModalQty");
+  if (qtyEl) {
+    currentDetailQty = parseInt(qtyEl.value || qtyEl.innerText) || 1;
+  }
 
   const noteEl = document.getElementById("detailModalNote");
   const noteInput = noteEl ? noteEl.value.trim() : "";
@@ -583,7 +638,6 @@ async function submitCatalogOrder() {
       body: JSON.stringify(payload)
     });
 
-    // Mengambil nomor WA dari pengaturan sheet, default jika kosong: 085838976880
     const targetWaRaw = storeConfig.WA || "085838976880";
     const targetWaFormatted = formatToWhatsappNumber(targetWaRaw);
 

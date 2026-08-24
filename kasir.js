@@ -120,7 +120,7 @@ function filterProducts() {
 }
 
 // =========================================
-// PRODUCT RENDER & MODAL DETAIL
+// PRODUCT RENDER (SESUAI GAMBAR 1)
 // =========================================
 function renderProducts(products) {
   const grid = document.getElementById("productGrid");
@@ -139,22 +139,26 @@ function renderProducts(products) {
     const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
 
+    // Tombol di bagian bawah produk (Tombol 'Add' jika Qty 0, atau counter '- 1 +' jika Qty > 0)
+    const actionButtonHtml = totalQtyInCart > 0 
+      ? `<div class="qty-counter-box" onclick="event.stopPropagation()">
+           <button class="btn-qty-mini" onclick="updateDirectQty('${p.id}', ${totalQtyInCart - 1})">-</button>
+           <span class="counter-val">${totalQtyInCart}</span>
+           <button class="btn-qty-mini" onclick="handleProductClick('${p.id}', event)">+</button>
+         </div>`
+      : `<button class="btn-add-card" onclick="handleProductClick('${p.id}', event)">Add</button>`;
+
     return `
       <div class="product-card ${isSelected ? 'has-selected' : ''}">
         <div class="product-img-wrapper" onclick="openDetailModal('${p.id}')">
           <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
         </div>
         
-        <div class="product-details">
-          <div class="product-info-text" onclick="openDetailModal('${p.id}')">
-            <div class="product-title">${p.nama}</div>
-            <div class="product-price">Rp${formatRupiah(p.harga)}</div>
-          </div>
-
-          <div class="qty-badge-inline" onclick="event.stopPropagation()">
-            <button class="btn-qty-mini" onclick="updateDirectQty('${p.id}', ${totalQtyInCart - 1})">-</button>
-            <span class="counter-val">${totalQtyInCart}</span>
-            <button class="btn-qty-mini" onclick="handleProductClick('${p.id}', event)">+</button>
+        <div class="product-details" onclick="openDetailModal('${p.id}')">
+          <div class="product-title">${p.nama}</div>
+          <div class="product-price">Rp${formatRupiah(p.harga)}</div>
+          <div style="margin-top: 10px;" onclick="event.stopPropagation()">
+            ${actionButtonHtml}
           </div>
         </div>
       </div>
@@ -162,6 +166,9 @@ function renderProducts(products) {
   }).join('');
 }
 
+// =========================================
+// MODAL DETAIL PRODUK (SESUAI GAMBAR 2)
+// =========================================
 function openDetailModal(productId) {
   const product = allProducts.find(p => p.id === productId);
   if (!product) return;
@@ -170,9 +177,16 @@ function openDetailModal(productId) {
   currentModalQty = 1;
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
+  
+  // Mengambil Keterangan dari Kolom F Google Sheet (index 5 / properti keterangan)
+  const desc = product.keterangan || product.deskripsi || product['Keterangan'] || product['Deskripsi'] || product[5] || '';
 
   document.getElementById('modal-img').src = fixImageUrl(rawImgUrl);
   document.getElementById('modal-title').innerText = product.nama;
+  
+  const descEl = document.getElementById('modal-desc');
+  if (descEl) descEl.innerText = desc;
+
   document.getElementById('modal-price').innerText = "Rp" + formatRupiah(product.harga);
   document.getElementById('modal-qty-val').innerText = currentModalQty;
   document.getElementById('modal-notes').value = '';

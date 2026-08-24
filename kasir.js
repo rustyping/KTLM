@@ -17,7 +17,7 @@ let posSettings = {
   showImages: true,
   printMode: 'rawbt',
   paperSize: '58mm',
-  headerName: 'Toko Damai POS',
+  headerName: 'KTLM Kitchen',
   address: '',
   waPhone: ''
 };

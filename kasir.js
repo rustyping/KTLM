@@ -10,6 +10,84 @@ let pendingOrdersArr = [];
 let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
+let currentModalProduct = null;
+let currentModalQty = 1;
+
+
+// 1. Membuka Modal saat Gambar / Kartu Diklik
+function openDetailModal(productId) {
+  const product = PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+
+  currentModalProduct = product;
+  currentModalQty = 1;
+
+  // Isi data produk ke modal
+  document.getElementById('modal-img').src = product.image || 'placeholder.jpg';
+  document.getElementById('modal-title').innerText = product.name;
+  document.getElementById('modal-price').innerText = formatRp(product.price);
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
+  
+  // Reset isi catatan tambahan
+  document.getElementById('modal-notes').value = '';
+
+  // Tampilkan Modal
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+  currentModalProduct = null;
+}
+
+// 2. Mengubah Jumlah Qty di Dalam Modal
+function changeModalQty(delta) {
+  currentModalQty = Math.max(1, currentModalQty + delta);
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
+}
+
+// 3. Menyimpan Hasil Pilihan + Catatan dari Modal ke Keranjang
+function saveModalToCart() {
+  if (!currentModalProduct) return;
+
+  const notesInput = document.getElementById('modal-notes').value.trim();
+
+  // Simpan item ke array Cart
+  addToCart({
+    id: currentModalProduct.id,
+    name: currentModalProduct.name,
+    price: currentModalProduct.price,
+    qty: currentModalQty,
+    notes: notesInput // Catatan tersimpan di item keranjang
+  });
+
+  closeDetailModal();
+}
+
+// 4. Counter tombol - + di bagian bawah kartu menu utama
+function updateCardQty(productId, delta) {
+  // Mengubah qty langsung dari kartu bawah tanpa modal
+  let cartItem = cart.find(item => item.id === productId && !item.notes);
+  
+  if (cartItem) {
+    cartItem.qty += delta;
+    if (cartItem.qty <= 0) {
+      cart = cart.filter(item => item !== cartItem);
+    }
+  } else if (delta > 0) {
+    const product = PRODUCTS.find(p => p.id === productId);
+    cart.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      qty: 1,
+      notes: ''
+    });
+  }
+  
+  renderCart();
+  updateCardQtyDisplay(productId);
+}
 
 let posSettings = {
   showImages: true,

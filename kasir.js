@@ -13,7 +13,10 @@ let selectedSubOptions = {};
 let currentDetailProduct = null;
 let currentDetailQty = 1;
 
-// Helper Gambar Google Drive
+// Variable penampung data transaksi terakhir untuk cetak struk
+let lastOrderData = null;
+
+// Helper URL Gambar Google Drive
 function fixImageUrl(url) {
   if (!url || typeof url !== 'string' || url.trim() === '') return DEFAULT_PLACEHOLDER;
   if (url.indexOf('drive.google.com') !== -1) {
@@ -25,6 +28,16 @@ function fixImageUrl(url) {
   return url;
 }
 
+// Subkategori Filter
+function getSubCategoriesForProduct(product) {
+  if (!allSubcategories || allSubcategories.length === 0 || !product) return [];
+  return allSubcategories.filter(function(s) {
+    return (s.id_produk && String(s.id_produk).toLowerCase() === String(product.id).toLowerCase()) ||
+           (s.produk && String(s.produk).toLowerCase() === String(product.nama).toLowerCase());
+  });
+}
+
+// Load Data Awal
 async function loadData() {
   try {
     const res = await fetch(API_URL);
@@ -68,14 +81,6 @@ function renderCategories() {
   }).join('');
 }
 
-function getSubCategoriesForProduct(product) {
-  if (!allSubcategories || allSubcategories.length === 0) return [];
-  return allSubcategories.filter(function(s) {
-    return (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
-           (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase());
-  });
-}
-
 function filterCategory(cat, btn) {
   selectedCategory = cat;
   const btns = document.querySelectorAll('.cat-btn');
@@ -102,7 +107,7 @@ function filterProducts() {
   renderProducts(filtered);
 }
 
-// Render Grid Produk Kasir ala Gacoan
+// Render Produk Kasir (Tombol: Add / [- 1 +])
 function renderProducts(products) {
   const grid = document.getElementById("productGrid");
   if (!grid) return;
@@ -113,7 +118,7 @@ function renderProducts(products) {
   
   grid.innerHTML = products.map(function(p) {
     const totalQtyInCart = cart
-      .filter(function(c) { return c.product.id === p.id; })
+      .filter(function(c) { return String(c.product.id) === String(p.id); })
       .reduce(function(sum, i) { return sum + i.qty; }, 0);
 
     const subCategories = getSubCategoriesForProduct(p);
@@ -127,9 +132,9 @@ function renderProducts(products) {
     if (isSelected) {
       buttonHtml = 
         '<div class="qty-control-inline" onclick="event.stopPropagation()">' +
-          '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', -1)">-</button>' +
+          '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', -1, event)">-</button>' +
           '<span class="qty-val-text">' + totalQtyInCart + '</span>' +
-          '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', 1)">+</button>' +
+          '<button type="button" class="btn-qty-action" onclick="changeQtyCard(\'' + p.id + '\', 1, event)">+</button>' +
         '</div>';
     } else {
       buttonHtml = 
@@ -153,9 +158,10 @@ function renderProducts(products) {
   }).join('');
 }
 
+// Handle Klik Tombol Add
 function handleAddButtonClick(productId, event) {
   if (event) event.stopPropagation();
-  const product = allProducts.find(function(p) { return p.id === productId; });
+  const product = allProducts.find(function(p) { return String(p.id) === String(productId); });
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -166,8 +172,9 @@ function handleAddButtonClick(productId, event) {
   }
 }
 
+// Handle Klik Gambar Produk (Masuk Detail seperti index.html)
 function handleImageClick(productId) {
-  const product = allProducts.find(function(p) { return p.id === productId; });
+  const product = allProducts.find(function(p) { return String(p.id) === String(productId); });
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -178,8 +185,10 @@ function handleImageClick(productId) {
   }
 }
 
-function changeQtyCard(productId, delta) {
-  const product = allProducts.find(function(p) { return p.id === productId; });
+// Change Qty langsung pada kartu
+function changeQtyCard(productId, delta, event) {
+  if (event) event.stopPropagation();
+  const product = allProducts.find(function(p) { return String(p.id) === String(productId); });
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -188,23 +197,23 @@ function changeQtyCard(productId, delta) {
     if (delta > 0) {
       openSubCategoryModal(product, subCategories);
     } else {
-      const lastIndex = cart.map(function(c) { return c.product.id; }).lastIndexOf(productId);
-      if (lastIndex !== -1) {
-        updateQtyInCartList(lastIndex, -1);
+      const cartIdx = cart.map(function(i) { return String(i.product.id); }).lastIndexOf(String(productId));
+      if (cartIdx !== -1) {
+        updateQtyInCartList(cartIdx, -1);
       }
     }
   } else {
-    const existingIndex = cart.findIndex(function(c) { return c.product.id === productId; });
+    const existingIndex = cart.findIndex(function(c) { return String(c.product.id) === String(productId); });
     if (existingIndex !== -1) {
       updateQtyInCartList(existingIndex, delta);
     }
   }
 }
 
-/* POPUP DETAIL MENU KLIK GAMBAR ALA GACOAN */
+/* MODAL DETAIL PRODUK (KLIK GAMBAR SEPERTI INDEX.HTML) */
 function openProductDetailModal(product) {
   currentDetailProduct = product;
-  const existingItem = cart.find(function(item) { return item.product.id === product.id; });
+  const existingItem = cart.find(function(item) { return String(item.product.id) === String(product.id); });
   currentDetailQty = existingItem ? existingItem.qty : 1;
 
   const titleEl = document.getElementById("detailModalTitle");
@@ -250,7 +259,7 @@ function saveDetailModalCart() {
 
   const noteEl = document.getElementById("detailModalNote");
   const noteInput = noteEl ? noteEl.value.trim() : "";
-  const existingItem = cart.find(function(item) { return item.product.id === currentDetailProduct.id; });
+  const existingItem = cart.find(function(item) { return String(item.product.id) === String(currentDetailProduct.id); });
 
   if (existingItem) {
     existingItem.qty = currentDetailQty;
@@ -419,7 +428,7 @@ function confirmSubCategorySelection() {
 /* MANAJEMEN KERANJANG & CHECKOUT */
 function addToCart(product, qty, subVariant) {
   const existing = cart.find(function(item) {
-    return item.product.id === product.id && (item.subVariant || "") === (subVariant || "");
+    return String(item.product.id) === String(product.id) && (item.subVariant || "") === (subVariant || "");
   });
 
   if (existing) {
@@ -496,7 +505,7 @@ function renderModalCartList() {
   }).join('');
 }
 
-/* KALKULATOR KASIR (UANG DITERIMA & KEMBALIAN) */
+/* KALKULATOR UANG DITERIMA & KEMBALIAN (KASIR) */
 function toggleCashInput() {
   const paymentSelect = document.getElementById("paymentMethodSelect");
   const cashSection = document.getElementById("cashCalculationSection");
@@ -538,12 +547,103 @@ function calculateChange() {
   if (displayEl) {
     if (change < 0) {
       displayEl.innerText = "Kurang Rp" + Math.abs(change).toLocaleString('id-ID');
-      displayEl.style.color = "#dc2626"; // Merah
+      displayEl.style.color = "#dc2626";
     } else {
       displayEl.innerText = "Rp" + change.toLocaleString('id-ID');
-      displayEl.style.color = "#0369a1"; // Biru
+      displayEl.style.color = "#0369a1";
     }
   }
+}
+
+/* FITUR CETAK STRUK / PRINT RECEIPT */
+function printReceipt(orderData) {
+  const data = orderData || lastOrderData;
+  if (!data) {
+    alert("Tidak ada data transaksi yang bisa dicetak.");
+    return;
+  }
+
+  const storeName = storeConfig.Header || storeConfig.namaToko || "KASIR TOKO";
+  const storeAddress = storeConfig.Alamat || storeConfig.alamat || "";
+  const storePhone = storeConfig.Telepon || storeConfig.tlp || storeConfig.phone || "";
+
+  let itemsRowsHtml = data.items.map(function(item) {
+    let subText = item.subVariant ? ' (' + item.subVariant + ')' : '';
+    let noteText = item.note ? ' [Ket: ' + item.note + ']' : '';
+    let fullTitle = item.product.nama + subText + noteText;
+    let subtotal = (item.product.harga || 0) * item.qty;
+
+    return '' +
+      '<tr>' +
+        '<td colspan="2" style="font-weight:bold; padding-top:4px;">' + fullTitle + '</td>' +
+      '</tr>' +
+      '<tr>' +
+        '<td style="padding-bottom:4px; padding-left:8px;">' + item.qty + ' x Rp' + (item.product.harga || 0).toLocaleString('id-ID') + '</td>' +
+        '<td style="text-align:right; padding-bottom:4px;">Rp' + subtotal.toLocaleString('id-ID') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  const printWindow = window.open('', '_blank', 'width=380,height=600');
+  if (!printWindow) {
+    alert("Popup diblokir! Harap izinkan popup di browser Anda untuk mencetak struk.");
+    return;
+  }
+
+  const doc = printWindow.document;
+  doc.write('<!DOCTYPE html><html><head><title>Struk ' + data.invoiceNo + '</title>');
+  doc.write('<style>');
+  doc.write('@page { size: 58mm auto; margin: 0; }');
+  doc.write('body { font-family: "Courier New", Courier, monospace; font-size: 11px; line-height: 1.3; width: 58mm; margin: 0 auto; padding: 6px; color: #000; background: #fff; }');
+  doc.write('.text-center { text-align: center; }');
+  doc.write('.text-right { text-align: right; }');
+  doc.write('.bold { font-weight: bold; }');
+  doc.write('.divider { border-top: 1px dashed #000; margin: 6px 0; }');
+  doc.write('table { width: 100%; border-collapse: collapse; }');
+  doc.write('td { vertical-align: top; }');
+  doc.write('.title { font-size: 13px; font-weight: bold; text-transform: uppercase; }');
+  doc.write('</style></head><body>');
+  
+  doc.write('<div class="text-center">');
+  doc.write('<div class="title">' + storeName + '</div>');
+  if (storeAddress) doc.write('<div>' + storeAddress + '</div>');
+  if (storePhone) doc.write('<div>Telp: ' + storePhone + '</div>');
+  doc.write('</div>');
+
+  doc.write('<div class="divider"></div>');
+  doc.write('<div>No  : ' + data.invoiceNo + '</div>');
+  doc.write('<div>Tgl : ' + data.waktu + '</div>');
+  doc.write('<div>Plg : ' + data.customerName + '</div>');
+  doc.write('<div>Kasir: ' + (data.kasir || 'Kasir Toko') + '</div>');
+
+  doc.write('<div class="divider"></div>');
+  doc.write('<table>' + itemsRowsHtml + '</table>');
+  doc.write('<div class="divider"></div>');
+
+  doc.write('<table>');
+  doc.write('<tr><td>TOTAL</td><td class="text-right bold">Rp' + data.totalBelanja.toLocaleString('id-ID') + '</td></tr>');
+  doc.write('<tr><td>BAYAR (' + data.jenisPembayaran + ')</td><td class="text-right">Rp' + data.uangDiterima.toLocaleString('id-ID') + '</td></tr>');
+  doc.write('<tr><td>KEMBALI</td><td class="text-right">Rp' + Math.max(0, data.kembalian).toLocaleString('id-ID') + '</td></tr>');
+  doc.write('</table>');
+
+  doc.write('<div class="divider"></div>');
+  doc.write('<div class="text-center" style="margin-top:8px;">');
+  doc.write('<div>Terima Kasih atas Kunjungan Anda</div>');
+  doc.write('<div>Selamat Menikmati!</div>');
+  doc.write('</div>');
+
+  doc.write('</body></html>');
+  doc.close();
+
+  printWindow.focus();
+  setTimeout(function() {
+    printWindow.print();
+    printWindow.close();
+  }, 400);
+}
+
+// Fungsi opsional jika ingin mencetak struk transaksi terakhir secara manual
+function printLastReceipt() {
+  printReceipt(lastOrderData);
 }
 
 /* PROSES SIMPAN TRANSAKSI KASIR KE SHEET */
@@ -607,6 +707,19 @@ async function submitCashierOrder() {
     status: "SUKSES"
   };
 
+  // Simpan data untuk cetak struk
+  lastOrderData = {
+    invoiceNo: invoiceNo,
+    waktu: waktuTx,
+    customerName: custName,
+    jenisPembayaran: selectedPayment,
+    totalBelanja: totalBelanja,
+    uangDiterima: uangDiterima,
+    kembalian: kembalian,
+    kasir: "Kasir Toko",
+    items: JSON.parse(JSON.stringify(cart))
+  };
+
   try {
     await fetch(API_URL, {
       method: "POST",
@@ -615,9 +728,12 @@ async function submitCashierOrder() {
       body: JSON.stringify(payload)
     });
 
-    alert("✅ Transaksi Berhasil Disimpan!\nNo Invoice: " + invoiceNo + "\nKembalian: Rp" + Math.max(0, kembalian).toLocaleString('id-ID'));
+    const doPrint = confirm("✅ Transaksi Berhasil Disimpan!\nNo Invoice: " + invoiceNo + "\nKembalian: Rp" + Math.max(0, kembalian).toLocaleString('id-ID') + "\n\nApakah Anda ingin mencetak struk?");
+    if (doPrint) {
+      printReceipt(lastOrderData);
+    }
     
-    // Reset Kasir
+    // Reset Form & Keranjang
     cart = [];
     updateCartUI();
     filterProducts();

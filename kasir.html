@@ -4,157 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>KTLM Kitchen - POS Dapur</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: #f4f6f8; color: #212529; padding-bottom: 95px; -webkit-tap-highlight-color: transparent; }
-
-    /* Header POS */
-    .app-header { background: #1b5e20; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .app-header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
-    .btn-settings { background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 18px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
-
-    .main-container { padding: 12px; max-width: 600px; margin: 0 auto; }
-
-    /* Search Bar */
-    .search-box { width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #ced4da; border-radius: 10px; margin-bottom: 12px; outline: none; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .search-box:focus { border-color: #2e7d32; }
-
-    /* Category Bar */
-    .category-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
-    .category-bar::-webkit-scrollbar { display: none; }
-    .cat-btn { padding: 8px 16px; border: 1px solid #dee2e6; background: #fff; border-radius: 20px; font-size: 13px; font-weight: 600; color: #495057; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
-    .cat-btn.active { background: #2e7d32; color: #fff; border-color: #2e7d32; box-shadow: 0 2px 6px rgba(46,125,50,0.3); }
-
-    /* Product Grid Layout */
-    .product-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    @media (min-width: 480px) { .product-grid { grid-template-columns: repeat(3, 1fr); } }
-
-    .product-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; position: relative; transition: all 0.15s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.04); }
-    .product-card:active { transform: scale(0.97); }
-    .product-card.has-selected { border: 2px solid #1b5e20; box-shadow: 0 4px 12px rgba(27,94,32,0.2); }
-
-    /* Mode Tanpa Gambar (Compact View) */
-    .product-card.compact { padding: 12px; min-height: 80px; flex-direction: row; align-items: center; justify-content: space-between; }
-
-    /* Product Image Wrapper */
-    .product-img-wrapper { width: 100%; height: 115px; background: #eee; position: relative; overflow: hidden; }
-    .product-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-    /* Badge Tambah Variasi */
-    .variant-tag { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; backdrop-filter: blur(2px); }
-    .variant-tag-inline { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
-
-    /* Detail Text & Badge Angka Sejajar di Bawah */
-    .product-details { padding: 10px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex: 1; background: #fff; }
-    .product-info-text { display: flex; flex-direction: column; justify-content: center; flex: 1; padding-right: 6px; }
-    .product-title { font-size: 13px; font-weight: 700; color: #212529; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 2px; line-height: 1.25; }
-    .product-price { font-size: 13px; font-weight: 800; color: #2e7d32; }
-
-    /* Badge Angka Jumlah di Kanan Bawah */
-    .qty-badge-inline { 
-      background: #1b5e20; 
-      border-radius: 8px; 
-      padding: 2px 4px; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      flex-shrink: 0; 
-      box-shadow: 0 2px 5px rgba(27,94,32,0.3); 
-    }
-    .qty-input-inline { 
-      width: 32px; 
-      height: 28px; 
-      border: none; 
-      background: transparent; 
-      text-align: center; 
-      font-size: 14px; 
-      font-weight: 800; 
-      color: #ffffff; 
-      outline: none; 
-    }
-
-    /* Compact Layout Styling */
-    .compact-details { flex: 1; padding-right: 6px; }
-
-    /* Bottom Action Bar */
-    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #dee2e6; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 90; }
-    .bottom-bar-info { display: flex; flex-direction: column; }
-    .bottom-bar-items { font-size: 12px; color: #6c757d; font-weight: 600; }
-    .bottom-bar-total { font-size: 18px; font-weight: 800; color: #2e7d32; }
-    .btn-checkout { background: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 8px rgba(46,125,50,0.3); }
-    .btn-checkout:disabled { background: #adb5bd; cursor: not-allowed; box-shadow: none; }
-
-    /* Modal Overlay */
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 200; display: none; justify-content: flex-end; flex-direction: column; }
-    .modal-content { background: #fff; border-radius: 18px 18px 0 0; max-height: 90vh; display: flex; flex-direction: column; animation: slideUp 0.2s ease-out; }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-    .modal-header { padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 16px; font-weight: 700; }
-    .btn-close { border: none; background: transparent; font-size: 22px; cursor: pointer; color: #6c757d; padding: 0 8px; }
-
-    .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 11px; font-weight: 700; color: #6c757d; margin-bottom: 6px; letter-spacing: 0.5px; }
-    .form-select, .form-input, .form-textarea { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ced4da; border-radius: 8px; background: #fff; outline: none; }
-    .form-textarea { resize: none; height: 60px; }
-
-    /* Toggle Switch */
-    .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 10px 12px; border: 1px solid #dee2e6; border-radius: 8px; }
-    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 24px; }
-    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-    input:checked + .slider { background-color: #2e7d32; }
-    input:checked + .slider:before { transform: translateX(20px); }
-
-    /* Group Subkategori & Mix-Match Counter */
-    .option-group { margin-bottom: 16px; background: #fafafa; padding: 12px; border-radius: 10px; border: 1px solid #eee; }
-    .option-label { font-size: 12px; font-weight: 700; color: #1b5e20; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
-    .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
-    .chip-option { background: #fff; border: 1px solid #ced4da; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.15s ease; user-select: none; }
-    .chip-option:active { transform: scale(0.95); }
-    .chip-option.selected { background: #2e7d32; color: #fff; border-color: #2e7d32; box-shadow: 0 2px 6px rgba(46,125,50,0.3); }
-
-    /* UI Counter Mix & Match */
-    .counter-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e0e0e0; }
-    .counter-item-row:last-child { border-bottom: none; }
-    .counter-item-name { font-size: 13px; font-weight: 600; color: #333; }
-    .counter-control { display: flex; align-items: center; gap: 10px; }
-    .btn-counter-mini { width: 30px; height: 30px; border: 1px solid #1b5e20; background: #e8f5e9; color: #1b5e20; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .btn-counter-mini:active { background: #c8e6c9; }
-    .counter-val { font-size: 14px; font-weight: 800; min-width: 20px; text-align: center; }
-
-    .quick-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-    .chip-btn { background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: #495057; cursor: pointer; }
-
-    /* Cart Row */
-    .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }
-    .cart-item-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
-    .cart-item-sub { font-size: 11px; color: #2e7d32; font-weight: 600; margin-bottom: 2px; }
-    .cart-item-price { font-size: 12px; color: #6c757d; }
-    .qty-controls { display: flex; align-items: center; gap: 8px; }
-    .btn-qty-mini { width: 28px; height: 28px; border: 1px solid #ced4da; background: #fff; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-    .modal-footer { padding: 16px; border-top: 1px solid #eee; background: #f8f9fa; }
-    .summary-line { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-bottom: 12px; }
-    .btn-confirm-pay { width: 100%; padding: 14px; background: #2e7d32; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
-
-    /* Print Thermal Layout */
-    @media print {
-      body * { visibility: hidden; }
-      #receipt-print, #receipt-print * { visibility: visible; }
-      #receipt-print { position: absolute; left: 0; top: 0; width: var(--paper-width, 58mm); padding: 5px; font-size: 10px; font-family: monospace; }
-    }
-    #receipt-print { display: none; }
-  </style>
+  <link rel="stylesheet" href="kasir.css">
 </head>
 <body>
 
   <!-- Header -->
   <header class="app-header">
     <h1>KTLM Kitchen</h1>
-    <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <!-- Tombol Pesanan Katalog Masuk -->
+      <button class="btn-settings" onclick="openPendingOrdersModal()" style="position:relative;" title="Pesanan Masuk Katalog">
+        🛒 <span id="orderBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#d32f2f; color:white; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:bold;">0</span>
+      </button>
+      <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
+    </div>
   </header>
 
   <!-- Container Utama -->
@@ -196,7 +59,7 @@
     </div>
   </div>
 
-  <!-- Modal Checkout -->
+  <!-- Modal Checkout Kasir Langsung -->
   <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -205,6 +68,15 @@
       </div>
       
       <div class="modal-body">
+        <!-- 1. RINCIAN PESANAN (DITAMPILKAN PERTAMA) -->
+        <div class="form-group">
+          <label style="font-weight: bold; color: #2e7d32; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
+          <div id="modalCartList"></div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <!-- 2. PELANGGAN -->
         <div class="form-group">
           <label for="customerSelect">PELANGGAN / CUSTOMER</label>
           <select id="customerSelect" class="form-select">
@@ -212,6 +84,7 @@
           </select>
         </div>
 
+        <!-- 3. METODE PEMBAYARAN -->
         <div class="form-group">
           <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
           <select id="paymentMethodSelect" class="form-select">
@@ -221,6 +94,7 @@
           </select>
         </div>
 
+        <!-- 4. CATATAN KHUSUS -->
         <div class="form-group">
           <label for="orderNote">CATATAN KHUSUS / NOTE</label>
           <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
@@ -233,11 +107,6 @@
             <button class="chip-btn" onclick="addQuickNote('Tanpa Cuka')">+ Tanpa Cuka</button>
           </div>
         </div>
-
-        <div class="form-group">
-          <label>RINCIAN PESANAN</label>
-          <div id="modalCartList"></div>
-        </div>
       </div>
 
       <div class="modal-footer">
@@ -246,6 +115,20 @@
           <span id="modalTotalAmount">Rp0</span>
         </div>
         <button class="btn-confirm-pay" onclick="processPayment()">BAYAR & PRINT STRUK</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Modal Pesanan Masuk (Katalog Online) -->
+  <div class="modal-overlay" id="pendingOrdersModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">🛒 Pesanan Masuk Katalog</span>
+        <button class="btn-close" onclick="closePendingOrdersModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="pendingOrdersList">
+        <p style="text-align:center; color:#6c757d; padding:20px;">Memuat pesanan...</p>
       </div>
     </div>
   </div>
@@ -310,570 +193,15 @@
 
   <div id="receipt-print"></div>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
-    const DEFAULT_PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f1f3f5'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%23adb5bd'>KTLM</text></svg>";
-
-    let storeConfig = {};
-    let allProducts = [];
-    let allCustomers = [];
-    let allSubcategories = [];
-    let cart = [];
-    let selectedCategory = "ALL";
-    let activeSubProduct = null;
-    let selectedSubOptions = {};
-
-    let posSettings = {
-      showImages: true,
-      printMode: 'rawbt',
-      paperSize: '58mm',
-      headerName: 'KTLM Kitchen',
-      address: '',
-      waPhone: ''
-    };
-
-    function initSettings() {
-      const saved = localStorage.getItem('ktlm_pos_settings');
-      if (saved) {
-        try {
-          posSettings = Object.assign(posSettings, JSON.parse(saved));
-        } catch(e){}
-      }
-      document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-    }
-
-    function fixImageUrl(url) {
-      if (!url || typeof url !== 'string' || url.trim() === '') return DEFAULT_PLACEHOLDER;
-      if (url.includes('drive.google.com')) {
-        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-          return `https://lh3.googleusercontent.com/d/${match[1]}`;
-        }
-      }
-      return url;
-    }
-
-    async function loadData() {
-      initSettings();
-      try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        storeConfig = data.store || {};
-        allProducts = data.products || [];
-        allCustomers = data.customers || [];
-        allSubcategories = data.subkategori || [];
-
-        renderCategories();
-        renderProducts(allProducts);
-        renderCustomers();
-      } catch (err) {
-        alert("Gagal memuat data dari server.");
-      }
-    }
-
-    function renderCustomers() {
-      const custSelect = document.getElementById("customerSelect");
-      if (allCustomers.length > 0) {
-        custSelect.innerHTML = allCustomers.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
-      } else {
-        custSelect.innerHTML = `<option value="Umum">Umum / Walk-in</option>`;
-      }
-    }
-
-    function renderCategories() {
-      const categories = ["ALL", ...new Set(allProducts.map(p => p.kategori).filter(Boolean))];
-      const catBar = document.getElementById("categoryBar");
-      catBar.innerHTML = categories.map(cat => 
-        `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
-      ).join('');
-    }
-
-    function renderProducts(products) {
-      const grid = document.getElementById("productGrid");
-      if (products.length === 0) {
-        grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Menu tidak ditemukan</p>';
-        return;
-      }
-      
-      grid.innerHTML = products.map(p => {
-        const totalQtyInCart = cart
-          .filter(c => c.product.id === p.id)
-          .reduce((sum, i) => sum + i.qty, 0);
-
-        const subCategories = getSubCategoriesForProduct(p);
-        const hasSub = subCategories.length > 0;
-        const imgUrl = fixImageUrl(p.gambar);
-        const isSelected = totalQtyInCart > 0;
-
-        if (posSettings.showImages) {
-          return `
-            <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
-              <div class="product-img-wrapper">
-                <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
-                ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
-              </div>
-              
-              <div class="product-details">
-                <div class="product-info-text">
-                  <div class="product-title">${p.nama}</div>
-                  <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
-                </div>
-
-                ${isSelected ? `
-                  <div class="qty-badge-inline" onclick="event.stopPropagation()">
-                    <input type="number" min="0" class="qty-input-inline" 
-                           value="${totalQtyInCart}" 
-                           onchange="onQtyDirectChange('${p.id}', this.value)"
-                           onfocus="this.select()">
-                  </div>
-                ` : ''}
-              </div>
-            </div>
-          `;
-        } else {
-          return `
-            <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
-              <div class="compact-details">
-                <div class="product-title">${p.nama}</div>
-                <div class="product-price">Rp${p.harga.toLocaleString('id-ID')}</div>
-                ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
-              </div>
-              
-              ${isSelected ? `
-                <div class="qty-badge-inline" onclick="event.stopPropagation()">
-                  <input type="number" min="0" class="qty-input-inline" 
-                         value="${totalQtyInCart}" 
-                         onchange="onQtyDirectChange('${p.id}', this.value)"
-                         onfocus="this.select()">
-                </div>
-              ` : ''}
-            </div>
-          `;
-        }
-      }).join('');
-    }
-
-    function getSubCategoriesForProduct(product) {
-      if (!allSubcategories || allSubcategories.length === 0) return [];
-      return allSubcategories.filter(s => 
-        (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
-        (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
-      );
-    }
-
-    function handleProductClick(id, event) {
-      const product = allProducts.find(p => p.id === id);
-      if (!product) return;
-
-      const subCategories = getSubCategoriesForProduct(product);
-
-      if (subCategories.length > 0) {
-        openSubCategoryModal(product, subCategories);
-      } else {
-        addToCart(product, 1, "");
-      }
-    }
-
-    function onQtyDirectChange(productId, val) {
-      const product = allProducts.find(p => p.id === productId);
-      if (!product) return;
-
-      const newQty = parseInt(val) || 0;
-      const subCategories = getSubCategoriesForProduct(product);
-
-      if (subCategories.length > 0) {
-        openSubCategoryModal(product, subCategories);
-      } else {
-        updateDirectQty(productId, newQty);
-      }
-    }
-
-    /* Modal Subkategori & Mix-Match Counter */
-    function openSubCategoryModal(product, subCategories) {
-      activeSubProduct = product;
-      selectedSubOptions = {};
-
-      document.getElementById("subModalTitle").innerText = product.nama;
-      const modalBody = document.getElementById("subModalBody");
-
-      let html = '';
-      subCategories.forEach((group, index) => {
-        const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
-        let rawOptions = group.opsi || group.pilihan || "";
-        let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
-
-        const groupLower = groupName.toLowerCase();
-        
-        // Deteksi Otomatis Jika Grup adalah Pilihan Paket Varian Isi (Mix & Match)
-        const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
-                               groupLower.includes('paket') || groupLower.includes('pilih') || 
-                               group.tipe === 'counter';
-
-        if (optionsList.length > 0) {
-          if (isCounterGroup) {
-            selectedSubOptions[groupName] = {};
-            optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
-
-            html += `
-              <div class="option-group">
-                <div class="option-label">
-                  <span>${groupName.toUpperCase()}</span>
-                  <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
-                </div>
-                <div>
-                  ${optionsList.map(opt => `
-                    <div class="counter-item-row">
-                      <span class="counter-item-name">${opt}</span>
-                      <div class="counter-control">
-                        <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
-                        <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
-                        <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            `;
-          } else {
-            // Pilihan Single (Sejenis Penyajian: Goreng/Kukus/Vakum & Cuka: Pedas/Tidak)
-            selectedSubOptions[groupName] = optionsList[0];
-
-            html += `
-              <div class="option-group">
-                <div class="option-label">
-                  <span>${groupName.toUpperCase()}</span>
-                  <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
-                </div>
-                <div class="chips-container">
-                  ${optionsList.map((opt, optIndex) => `
-                    <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
-                            onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
-                      ${opt}
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-            `;
-          }
-        }
-      });
-
-      html += `
-        <div class="form-group" style="margin-top:15px;">
-          <label>JUMLAH PAKET / PORSI</label>
-          <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
-        </div>
-      `;
-
-      modalBody.innerHTML = html;
-      document.getElementById("subCategoryModal").style.display = "flex";
-    }
-
-    function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
-      if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
-      
-      let currentVal = selectedSubOptions[groupName][optionValue] || 0;
-      let newVal = Math.max(0, currentVal + delta);
-      selectedSubOptions[groupName][optionValue] = newVal;
-
-      const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
-      const el = document.getElementById(elementId);
-      if (el) el.innerText = newVal;
-
-      const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
-      const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
-      if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
-    }
-
-    function selectSingleSubOption(groupName, optionValue, btn) {
-      selectedSubOptions[groupName] = optionValue;
-      const parent = btn.parentElement;
-      parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-    }
-
-    function closeSubModal() {
-      document.getElementById("subCategoryModal").style.display = "none";
-      activeSubProduct = null;
-    }
-
-    function confirmSubCategorySelection() {
-      if (!activeSubProduct) return;
-      const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
-      
-      let formattedSelections = [];
-
-      Object.keys(selectedSubOptions).forEach(key => {
-        const val = selectedSubOptions[key];
-        if (typeof val === 'object' && val !== null) {
-          let itemsList = [];
-          Object.keys(val).forEach(itemKey => {
-            if (val[itemKey] > 0) {
-              itemsList.push(`${val[itemKey]} ${itemKey}`);
-            }
-          });
-          if (itemsList.length > 0) {
-            formattedSelections.push(itemsList.join(', '));
-          }
-        } else if (val) {
-          formattedSelections.push(val);
-        }
-      });
-
-      const subVariantText = formattedSelections.join(' | ');
-
-      addToCart(activeSubProduct, qty, subVariantText);
-      closeSubModal();
-    }
-
-    function addToCart(product, qty, subVariant) {
-      const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
-      if (existing) {
-        existing.qty += qty;
-      } else {
-        cart.push({ product: product, qty: qty, subVariant: subVariant || "" });
-      }
-      updateCartUI();
-      filterProducts();
-    }
-
-    function updateDirectQty(productId, newQty) {
-      const existingIndex = cart.findIndex(item => item.product.id === productId);
-      if (newQty <= 0) {
-        if (existingIndex !== -1) cart.splice(existingIndex, 1);
-      } else {
-        if (existingIndex !== -1) {
-          cart[existingIndex].qty = newQty;
-        } else {
-          const product = allProducts.find(p => p.id === productId);
-          if (product) cart.push({ product: product, qty: newQty, subVariant: "" });
-        }
-      }
-      updateCartUI();
-      filterProducts();
-    }
-
-    function updateQtyInCartList(index, delta) {
-      if (cart[index]) {
-        cart[index].qty += delta;
-        if (cart[index].qty <= 0) cart.splice(index, 1);
-      }
-      updateCartUI();
-      renderModalCartList();
-      filterProducts();
-      
-      if (cart.length === 0) {
-        closeCheckoutModal();
-      }
-    }
-
-    function filterCategory(cat, btn) {
-      selectedCategory = cat;
-      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filterProducts();
-    }
-
-    function filterProducts() {
-      const keyword = document.getElementById("searchInput").value.toLowerCase();
-      let filtered = allProducts.filter(p => {
-        const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
-        const matchSearch = p.nama.toLowerCase().includes(keyword);
-        return matchCat && matchSearch;
-      });
-      renderProducts(filtered);
-    }
-
-    function updateCartUI() {
-      const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-      const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
-
-      document.getElementById("barItemCount").innerText = `${totalQty} Item`;
-      document.getElementById("barTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
-      document.getElementById("modalTotalAmount").innerText = `Rp${totalPrice.toLocaleString('id-ID')}`;
-
-      const btnCheckout = document.getElementById("btnOpenCheckout");
-      btnCheckout.disabled = cart.length === 0;
-    }
-
-    function openCheckoutModal() {
-      if (cart.length === 0) return;
-      renderModalCartList();
-      document.getElementById("checkoutModal").style.display = "flex";
-    }
-
-    function closeCheckoutModal() {
-      document.getElementById("checkoutModal").style.display = "none";
-    }
-
-    function renderModalCartList() {
-      const container = document.getElementById("modalCartList");
-      container.innerHTML = cart.map((item, idx) => `
-        <div class="cart-item-row">
-          <div>
-            <div class="cart-item-name">${item.product.nama}</div>
-            ${item.subVariant ? `<div class="cart-item-sub">[ ${item.subVariant} ]</div>` : ''}
-            <div class="cart-item-price">Rp${item.product.harga.toLocaleString('id-ID')} x ${item.qty}</div>
-          </div>
-          <div class="qty-controls">
-            <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
-            <span style="font-size:13px; font-weight:bold;">${item.qty}</span>
-            <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, 1)">+</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function openSettingsModal() {
-      document.getElementById("settingShowImages").checked = posSettings.showImages;
-      document.getElementById("settingPrintMode").value = posSettings.printMode;
-      document.getElementById("settingPaperSize").value = posSettings.paperSize;
-      document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-      document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.Alamat || '';
-      document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.WA || '';
-      document.getElementById("settingsModal").style.display = "flex";
-    }
-
-    function closeSettingsModal() {
-      document.getElementById("settingsModal").style.display = "none";
-    }
-
-    function savePrinterSettings() {
-      posSettings.showImages = document.getElementById("settingShowImages").checked;
-      posSettings.printMode = document.getElementById("settingPrintMode").value;
-      posSettings.paperSize = document.getElementById("settingPaperSize").value;
-      posSettings.headerName = document.getElementById("settingHeaderStore").value;
-      posSettings.address = document.getElementById("settingAddressStore").value;
-      posSettings.waPhone = document.getElementById("settingWaStore").value;
-
-      localStorage.setItem('ktlm_pos_settings', JSON.stringify(posSettings));
-      document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-
-      filterProducts();
-      alert("Pengaturan tersimpan!");
-      closeSettingsModal();
-    }
-
-    function addQuickNote(text) {
-      const noteInput = document.getElementById("orderNote");
-      if (noteInput.value.trim() === "") {
-        noteInput.value = text;
-      } else {
-        noteInput.value += ", " + text;
-      }
-    }
-
-    async function processPayment() {
-      if (cart.length === 0) return;
-
-      const now = new Date();
-      const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
-      const waktuTx = now.toLocaleString('id-ID');
-      const selectedCustomer = document.getElementById("customerSelect").value;
-      const selectedPayment = document.getElementById("paymentMethodSelect").value;
-      const noteValue = document.getElementById("orderNote").value.trim();
-      
-      const totalBelanja = cart.reduce((sum, i) => sum + (i.product.harga * i.qty), 0);
-      const totalHpp = cart.reduce((sum, i) => sum + (i.product.hpp * i.qty), 0);
-      
-      let detailText = cart.map(i => {
-        let nameStr = i.product.nama;
-        if (i.subVariant) nameStr += ` (${i.subVariant})`;
-        return `${nameStr} (${i.qty}x)`;
-      }).join(", ");
-
-      if (noteValue) {
-        detailText += ` | Catatan: ${noteValue}`;
-      }
-
-      const payload = {
-        noInvoice: invoiceNo,
-        waktu: waktuTx,
-        customerName: selectedCustomer,
-        detailItems: detailText,
-        totalBelanja: totalBelanja,
-        totalHpp: totalHpp,
-        jenisPembayaran: selectedPayment,
-        uangDiterima: totalBelanja,
-        kembalian: 0
-      };
-
-      printReceipt(payload, noteValue);
-
-      try {
-        await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        alert("Transaksi Berhasil Disimpan!");
-        cart = [];
-        document.getElementById("orderNote").value = "";
-        updateCartUI();
-        closeCheckoutModal();
-        filterProducts();
-      } catch (err) {
-        alert("Transaksi selesai di HP, gagal konek simpan ke Sheet.");
-      }
-    }
-
-    function printReceipt(tx, note) {
-      const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-      const storeAddr = posSettings.address || storeConfig.Alamat || '';
-      const storeWa = posSettings.waPhone || storeConfig.WA || '';
-
-      if (posSettings.printMode === 'rawbt') {
-        let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
-        receiptText += `--------------------------------\n`;
-        receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
-        receiptText += `--------------------------------\n`;
-        cart.forEach(i => {
-          let itemLabel = i.product.nama;
-          if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
-          receiptText += `${itemLabel}\n  ${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')} = Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}\n`;
-        });
-        receiptText += `--------------------------------\n`;
-        if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
-        receiptText += `TOTAL: Rp${tx.totalBelanja.toLocaleString('id-ID')}\n`;
-        receiptText += `--------------------------------\n`;
-        receiptText += `${storeConfig["Bottom 1"] || 'Terima Kasih!'}\n\n\n`;
-
-        const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-        window.location.href = intentUrl;
-      } else {
-        const receipt = document.getElementById("receipt-print");
-        receipt.style.display = "block";
-        receipt.innerHTML = `
-          <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
-          <div style="text-align:center;">${storeAddr}</div>
-          <div style="text-align:center;">WA: ${storeWa}</div>
-          ----------------------------------<br>
-          No: ${tx.noInvoice}<br>
-          Tgl: ${tx.waktu}<br>
-          Cust: ${tx.customerName}<br>
-          Bayar: ${tx.jenisPembayaran}<br>
-          ----------------------------------<br>
-          ${cart.map(i => `
-            <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
-            <div style="display:flex; justify-content:space-between;">
-              <span>${i.qty} x Rp${i.product.harga.toLocaleString('id-ID')}</span>
-              <span>Rp${(i.qty * i.product.harga).toLocaleString('id-ID')}</span>
-            </div>
-          `).join('')}
-          ----------------------------------<br>
-          ${note ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${note}</div>----------------------------------<br>` : ''}
-          <div style="display:flex; justify-content:space-between; font-weight:bold;">
-            <span>TOTAL:</span>
-            <span>Rp${tx.totalBelanja.toLocaleString('id-ID')}</span>
-          </div>
-          ----------------------------------<br>
-          <div style="text-align:center; margin-top:8px;">${storeConfig["Bottom 1"] || 'Terima Kasih'}</div>
-        `;
-        window.print();
-        receipt.style.display = "none";
-      }
-    }
-
-    loadData();
-  </script>
+  <script src="kasir.js"></script>
+  
+  <!-- Notification Bubble Cetak Ulang -->
+  <div id="toastReprint" class="toast-reprint" style="display: none;">
+    <span>✅ Transaksi Berhasil</span>
+    <button type="button" class="btn-reprint" onclick="cetakUlangStrukTerakhir()">🖨️ Cetak Ulang Struk</button>
+    <button type="button" class="btn-close-toast" onclick="hideReprintToast()">✕</button>
+  </div>
+
+  
 </body>
 </html>

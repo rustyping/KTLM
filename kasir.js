@@ -10,7 +10,6 @@ let pendingOrdersArr = [];
 let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
-let lastTransaction = null;
 
 let posSettings = {
   showImages: true,
@@ -21,6 +20,7 @@ let posSettings = {
   waPhone: ''
 };
 
+// Helper Format Rupiah
 function formatRupiah(angka) {
   return (angka || 0).toLocaleString('id-ID');
 }
@@ -79,6 +79,7 @@ function renderCategories() {
   const catBar = document.getElementById("categoryBar");
   if (!catBar) return;
   
+  // Hanya ambil kategori dari produk yang Aktif (Kolom I)
   const activeProducts = allProducts.filter(p => {
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     return statusAktif === 'Y';
@@ -106,95 +107,57 @@ function renderProducts(products) {
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;
     
+    // Pembacaan gambar dari Kolom K ('Link Gambar')
     const rawImgUrl = p['Link Gambar'] || p.linkGambar || p.gambar || p[10];
     const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
 
     if (posSettings.showImages) {
       return `
-        <div class="product-card ${isSelected ? 'has-selected' : ''}">
-          <!-- Gambar dipencet akan membuka modal detail produk ala Kasir Gacoan -->
-          <div class="product-img-wrapper" onclick="openProductDetailModal('${p.id}', event)">
+        <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
+          <div class="product-img-wrapper">
             <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
             ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
           </div>
           
           <div class="product-details">
-            <div class="product-info-text" onclick="openProductDetailModal('${p.id}', event)">
+            <div class="product-info-text">
               <div class="product-title">${p.nama}</div>
               <div class="product-price">Rp${formatRupiah(p.harga)}</div>
             </div>
 
-            <div class="product-action-wrapper" style="margin-top: 8px;">
-              ${isSelected ? `
-                <div class="qty-badge-inline" onclick="event.stopPropagation()">
-                  <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
-                  <input type="number" min="0" class="qty-input-inline" 
-                         value="${totalQtyInCart}" 
-                         onchange="onQtyDirectChange('${p.id}', this.value)"
-                         onfocus="this.select()">
-                  <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
-                </div>
-              ` : `
-                <button type="button" class="btn-add-card" onclick="handleProductClick('${p.id}', event)" style="width:100%; padding: 6px 12px; background: #2e7d32; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                  + Tambah
-                </button>
-              `}
-            </div>
+            ${isSelected ? `
+              <div class="qty-badge-inline" onclick="event.stopPropagation()">
+                <input type="number" min="0" class="qty-input-inline" 
+                       value="${totalQtyInCart}" 
+                       onchange="onQtyDirectChange('${p.id}', this.value)"
+                       onfocus="this.select()">
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
     } else {
       return `
-        <div class="product-card compact ${isSelected ? 'has-selected' : ''}">
-          <div class="compact-details" onclick="openProductDetailModal('${p.id}', event)">
+        <div class="product-card compact ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
+          <div class="compact-details">
             <div class="product-title">${p.nama}</div>
             <div class="product-price">Rp${formatRupiah(p.harga)}</div>
             ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
           </div>
           
-          <div class="product-action-wrapper" style="margin-top: 5px;">
-            ${isSelected ? `
-              <div class="qty-badge-inline" onclick="event.stopPropagation()">
-                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
-                <input type="number" min="0" class="qty-input-inline" 
-                       value="${totalQtyInCart}" 
-                       onchange="onQtyDirectChange('${p.id}', this.value)"
-                       onfocus="this.select()">
-                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
-              </div>
-            ` : `
-              <button type="button" class="btn-add-card" onclick="handleProductClick('${p.id}', event)" style="width:100%; padding: 6px 12px; background: #2e7d32; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                + Tambah
-              </button>
-            `}
-          </div>
+          ${isSelected ? `
+            <div class="qty-badge-inline" onclick="event.stopPropagation()">
+              <input type="number" min="0" class="qty-input-inline" 
+                     value="${totalQtyInCart}" 
+                     onchange="onQtyDirectChange('${p.id}', this.value)"
+                     onfocus="this.select()">
+            </div>
+          ` : ''}
         </div>
       `;
     }
   }).join('');
-}
-
-function changeProductQtyInline(productId, delta, event) {
-  if (event) event.stopPropagation();
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
-
-  const subCategories = getSubCategoriesForProduct(product);
-
-  if (subCategories.length > 0) {
-    if (delta > 0) {
-      openSubCategoryModal(product, subCategories);
-    } else {
-      const cartIdx = cart.map(i => i.product.id).lastIndexOf(productId);
-      if (cartIdx !== -1) {
-        updateQtyInCartList(cartIdx, -1);
-      }
-    }
-  } else {
-    const currentQty = cart.filter(c => c.product.id === productId).reduce((sum, i) => sum + i.qty, 0);
-    updateDirectQty(productId, currentQty + delta);
-  }
 }
 
 function getSubCategoriesForProduct(product) {
@@ -205,18 +168,7 @@ function getSubCategoriesForProduct(product) {
   );
 }
 
-// Fungsi ketika gambar dipencet: selalu membuka modal detail (Gacoan Style)
-function openProductDetailModal(id, event) {
-  if (event) event.stopPropagation();
-  const product = allProducts.find(p => p.id === id);
-  if (!product) return;
-  const subCategories = getSubCategoriesForProduct(product);
-  openSubCategoryModal(product, subCategories);
-}
-
-// Fungsi ketika tombol + Tambah dipencet
 function handleProductClick(id, event) {
-  if (event) event.stopPropagation();
   const product = allProducts.find(p => p.id === id);
   if (!product) return;
 
@@ -243,88 +195,75 @@ function onQtyDirectChange(productId, val) {
   }
 }
 
-// Modal Detail & Variasi (Ala Kasir Bakso Gacoan) dengan Pratinjau Gambar di Atas
 function openSubCategoryModal(product, subCategories) {
   activeSubProduct = product;
   selectedSubOptions = {};
 
-  const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
-  const imgUrl = fixImageUrl(rawImgUrl);
-
   document.getElementById("subModalTitle").innerText = product.nama;
   const modalBody = document.getElementById("subModalBody");
 
-  // Header Modal Gambar Menu Besar (Gacoan Style)
-  let html = `
-    <div class="modal-product-banner" style="text-align: center; margin-bottom: 15px;">
-      <img src="${imgUrl}" alt="${product.nama}" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid #e0e0e0; margin-bottom: 8px;" onerror="this.src='${DEFAULT_PLACEHOLDER}'">
-      <div style="font-size: 18px; font-weight: bold; color: #2e7d32;">Rp${formatRupiah(product.harga)}</div>
-    </div>
-  `;
+  let html = '';
+  subCategories.forEach((group, index) => {
+    const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
+    let rawOptions = group.opsi || group.pilihan || "";
+    let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
 
-  if (subCategories && subCategories.length > 0) {
-    subCategories.forEach((group, index) => {
-      const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
-      let rawOptions = group.opsi || group.pilihan || "";
-      let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
+    const groupLower = groupName.toLowerCase();
+    const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
+                           groupLower.includes('paket') || groupLower.includes('pilih') || 
+                           group.tipe === 'counter';
 
-      const groupLower = groupName.toLowerCase();
-      const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
-                             groupLower.includes('paket') || groupLower.includes('pilih') || 
-                             group.tipe === 'counter';
+    if (optionsList.length > 0) {
+      if (isCounterGroup) {
+        selectedSubOptions[groupName] = {};
+        optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
 
-      if (optionsList.length > 0) {
-        if (isCounterGroup) {
-          selectedSubOptions[groupName] = {};
-          optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
-
-          html += `
-            <div class="option-group">
-              <div class="option-label">
-                <span>${groupName.toUpperCase()}</span>
-                <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
-              </div>
-              <div>
-                ${optionsList.map(opt => `
-                  <div class="counter-item-row">
-                    <span class="counter-item-name">${opt}</span>
-                    <div class="counter-control">
-                      <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
-                      <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
-                      <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
-                    </div>
+        html += `
+          <div class="option-group">
+            <div class="option-label">
+              <span>${groupName.toUpperCase()}</span>
+              <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
+            </div>
+            <div>
+              ${optionsList.map(opt => `
+                <div class="counter-item-row">
+                  <span class="counter-item-name">${opt}</span>
+                  <div class="counter-control">
+                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
+                    <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
+                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
                   </div>
-                `).join('')}
-              </div>
+                </div>
+              `).join('')}
             </div>
-          `;
-        } else {
-          selectedSubOptions[groupName] = optionsList[0];
+          </div>
+        `;
+      } else {
+        selectedSubOptions[groupName] = optionsList[0];
 
-          html += `
-            <div class="option-group">
-              <div class="option-label">
-                <span>${groupName.toUpperCase()}</span>
-                <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
-              </div>
-              <div class="chips-container">
-                ${optionsList.map((opt, optIndex) => `
-                  <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
-                          onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
-                    ${opt}
-                  </button>
-                `).join('')}
-              </div>
+        html += `
+          <div class="option-group">
+            <div class="option-label">
+              <span>${groupName.toUpperCase()}</span>
+              <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
             </div>
-          `;
-        }
+            <div class="chips-container">
+              ${optionsList.map((opt, optIndex) => `
+                <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
+                        onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
+                  ${opt}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
       }
-    });
-  }
+    }
+  });
 
   html += `
     <div class="form-group" style="margin-top:15px;">
-      <label style="font-weight: bold; font-size: 12px; color: #555;">JUMLAH PAKET / PORSI</label>
+      <label>JUMLAH PAKET / PORSI</label>
       <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
     </div>
   `;
@@ -443,6 +382,7 @@ function filterProducts() {
   const keyword = searchInput ? searchInput.value.toLowerCase() : "";
   
   let filtered = allProducts.filter(p => {
+    // Filter Kolom I (Aktif) -> Hanya tampilkan jika 'Y'
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     const isAktif = statusAktif === 'Y';
 
@@ -539,6 +479,7 @@ function addQuickNote(text) {
   }
 }
 
+/* PROSES PEMBAYARAN KASIR LANGSUNG */
 async function processPayment() {
   if (cart.length === 0) return;
 
@@ -569,7 +510,6 @@ async function processPayment() {
   }
 
   const payload = {
-    isCatalog: false,
     noInvoice: invoiceNo,
     waktu: waktuTx,
     customerName: selectedCustomer,
@@ -581,9 +521,7 @@ async function processPayment() {
     kembalian: 0,
     kasir: "Kasir",
     sumber: "Kasir",
-    status: "SELESAI",
-    cartItems: JSON.parse(JSON.stringify(cart)),
-    note: noteValue
+    status: "SELESAI"
   };
 
   try {
@@ -594,7 +532,6 @@ async function processPayment() {
       body: JSON.stringify(payload)
     });
 
-    saveLastTransaction(payload);
     printReceipt(payload, noteValue);
 
     alert("Transaksi Berhasil Disimpan!");
@@ -614,71 +551,7 @@ async function processPayment() {
   }
 }
 
-function printReceipt(tx, note) {
-  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-  const storeAddr = posSettings.address || storeConfig.Alamat || '';
-  const storeWa = posSettings.waPhone || storeConfig.WA || '';
-  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
-
-  const itemsToPrint = (tx && tx.cartItems && tx.cartItems.length > 0) ? tx.cartItems : cart;
-  const noteToPrint = note || (tx ? tx.note : "") || "";
-
-  if (posSettings.printMode === 'rawbt') {
-    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
-    receiptText += `--------------------------------\n`;
-    receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
-    receiptText += `--------------------------------\n`;
-
-    itemsToPrint.forEach(i => {
-      let itemLabel = i.product.nama;
-      if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
-      let itemTotal = i.qty * (i.product.harga || 0);
-      receiptText += `${itemLabel}\n  ${i.qty} x Rp${formatRupiah(i.product.harga)} = Rp${formatRupiah(itemTotal)}\n`;
-    });
-
-    receiptText += `--------------------------------\n`;
-    if (noteToPrint) receiptText += `Note: ${noteToPrint}\n--------------------------------\n`;
-    receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
-    receiptText += `--------------------------------\n`;
-    receiptText += `${storeBottom}\n\n\n`;
-
-    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
-    window.location.href = intentUrl;
-  } else {
-    const receipt = document.getElementById("receipt-print");
-    if (!receipt) return;
-    receipt.style.display = "block";
-    receipt.innerHTML = `
-      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
-      <div style="text-align:center;">${storeAddr}</div>
-      <div style="text-align:center;">WA: ${storeWa}</div>
-      ----------------------------------<br>
-      No: ${tx.noInvoice}<br>
-      Tgl: ${tx.waktu}<br>
-      Cust: ${tx.customerName}<br>
-      Bayar: ${tx.jenisPembayaran}<br>
-      ----------------------------------<br>
-      ${itemsToPrint.map(i => `
-        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
-        <div style="display:flex; justify-content:space-between;">
-          <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
-          <span>Rp${formatRupiah(i.qty * (i.product.harga || 0))}</span>
-        </div>
-      `).join('')}
-      ----------------------------------<br>
-      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteToPrint}</div>----------------------------------<br>` : ''}
-      <div style="display:flex; justify-content:space-between; font-weight:bold;">
-        <span>TOTAL:</span>
-        <span>Rp${formatRupiah(tx.totalBelanja)}</span>
-      </div>
-      ----------------------------------<br>
-      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
-    `;
-    window.print();
-    receipt.style.display = "none";
-  }
-}
-
+/* MANAGEMENT PESANAN MASUK KATALOG */
 async function checkPendingOrders() {
   try {
     const res = await fetch(`${API_URL}?action=getPendingOrders`);
@@ -737,9 +610,6 @@ function renderPendingOrders() {
 async function processAndPrintCatalogOrder(rowNum) {
   const order = pendingOrdersArr.find(o => o.rowNum === rowNum);
   if (!order) return;
-
-  const catalogPayload = { ...order, isCatalog: true };
-  saveLastTransaction(catalogPayload);
 
   printReceiptFromCatalog(order);
 
@@ -850,37 +720,68 @@ function printReceiptFromCatalog(order) {
   }
 }
 
-function saveLastTransaction(payloadData) {
-  lastTransaction = payloadData;
-  localStorage.setItem("lastPOSOrder", JSON.stringify(payloadData));
-  showReprintToast();
-}
+function printReceipt(tx, note) {
+  const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
+  const storeAddr = posSettings.address || storeConfig.Alamat || '';
+  const storeWa = posSettings.waPhone || storeConfig.WA || '';
+  const storeBottom = storeConfig["Bottom 1"] || 'Terima Kasih!';
 
-function showReprintToast() {
-  const toast = document.getElementById("toastReprint");
-  if (toast) toast.style.display = "flex";
-}
+  if (posSettings.printMode === 'rawbt') {
+    let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `No: ${tx.noInvoice}\nTgl: ${tx.waktu}\nCust: ${tx.customerName}\nBayar: ${tx.jenisPembayaran}\n`;
+    receiptText += `--------------------------------\n`;
 
-function hideReprintToast() {
-  const toast = document.getElementById("toastReprint");
-  if (toast) toast.style.display = "none";
-}
+    cart.forEach(i => {
+      let itemLabel = i.product.nama;
+      if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
+      let itemTotal = i.qty * (i.product.harga || 0);
+      receiptText += `${itemLabel}\n  ${i.qty} x Rp${formatRupiah(i.product.harga)} = Rp${formatRupiah(itemTotal)}\n`;
+    });
 
-function cetakUlangStrukTerakhir() {
-  const data = lastTransaction || JSON.parse(localStorage.getItem("lastPOSOrder"));
-  if (!data) {
-    alert("Belum ada data transaksi terakhir.");
-    return;
-  }
-  
-  if (data.isCatalog) {
-    printReceiptFromCatalog(data);
+    receiptText += `--------------------------------\n`;
+    if (note) receiptText += `Note: ${note}\n--------------------------------\n`;
+    receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
+    receiptText += `--------------------------------\n`;
+    receiptText += `${storeBottom}\n\n\n`;
+
+    const intentUrl = "intent:" + encodeURIComponent(receiptText) + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
+    window.location.href = intentUrl;
   } else {
-    printReceipt(data, data.note);
+    const receipt = document.getElementById("receipt-print");
+    if (!receipt) return;
+    receipt.style.display = "block";
+    receipt.innerHTML = `
+      <div style="text-align:center; font-weight:bold;">${storeTitle}</div>
+      <div style="text-align:center;">${storeAddr}</div>
+      <div style="text-align:center;">WA: ${storeWa}</div>
+      ----------------------------------<br>
+      No: ${tx.noInvoice}<br>
+      Tgl: ${tx.waktu}<br>
+      Cust: ${tx.customerName}<br>
+      Bayar: ${tx.jenisPembayaran}<br>
+      ----------------------------------<br>
+      ${cart.map(i => `
+        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
+          <span>Rp${formatRupiah(i.qty * (i.product.harga || 0))}</span>
+        </div>
+      `).join('')}
+      ----------------------------------<br>
+      ${note ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${note}</div>----------------------------------<br>` : ''}
+      <div style="display:flex; justify-content:space-between; font-weight:bold;">
+        <span>TOTAL:</span>
+        <span>Rp${formatRupiah(tx.totalBelanja)}</span>
+      </div>
+      ----------------------------------<br>
+      <div style="text-align:center; margin-top:8px;">${storeBottom}</div>
+    `;
+    window.print();
+    receipt.style.display = "none";
   }
 }
 
-// Inisialisasi Aplikasi
 loadData();
 setInterval(checkPendingOrders, 15000);
 checkPendingOrders();

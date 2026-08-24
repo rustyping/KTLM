@@ -3,134 +3,205 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KTLM Kitchen - POS</title>
+  <title>KTLM Kitchen - POS Dapur</title>
   <link rel="stylesheet" href="kasir.css">
 </head>
 <body>
 
-  <!-- HEADER POS -->
+  <!-- Header -->
   <header class="app-header">
     <h1>KTLM Kitchen</h1>
-    <button class="btn-settings" onclick="openSettingsModal()">⚙️</button>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <!-- Tombol Pesanan Katalog Masuk -->
+      <button class="btn-settings" onclick="openPendingOrdersModal()" style="position:relative;" title="Pesanan Masuk Katalog">
+        🛒 <span id="orderBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#d32f2f; color:white; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:bold;">0</span>
+      </button>
+      <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
+    </div>
   </header>
 
-  <!-- CONTAINER UTAMA -->
-  <main class="main-container">
-    <!-- Search Bar -->
-    <input type="text" id="searchInput" class="search-box" placeholder="Cari menu favorit..." oninput="filterProducts()">
+  <!-- Container Utama -->
+  <div class="main-container">
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu..." oninput="filterProducts()">
 
-    <!-- Category Bar -->
-    <div id="categoryBar" class="category-bar">
-      <button class="cat-btn active" onclick="filterCategory('ALL')">ALL</button>
-      <button class="cat-btn" onclick="filterCategory('Pempek')">Pempek</button>
-      <button class="cat-btn" onclick="filterCategory('Ala Carte')">Ala Carte</button>
-      <button class="cat-btn" onclick="filterCategory('KTLM')">KTLM</button>
+    <div class="category-bar" id="categoryBar">
+      <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
     </div>
 
-    <!-- Product Grid Layout -->
-    <div id="productGrid" class="product-grid">
-      <!-- Contoh Kartu Produk Render JS -->
-      <div class="product-card" onclick="openDetailModal({id: '1', name: 'Dos Keju', price: 10000, img: 'pempek.jpg', desc: 'pempek dos dengan isi keju'})">
-        <div class="product-img-wrapper">
-          <img src="pempek.jpg" alt="Dos Keju" class="product-img">
-        </div>
-        <div class="product-details">
-          <div class="product-info-text">
-            <div class="product-title">Dos Keju</div>
-            <div class="product-price">Rp10.000</div>
-          </div>
-          <!-- Container Kapsul (- 1 +) -->
-          <div class="qty-badge-inline" onclick="event.stopPropagation()">
-            <button class="btn-qty-card" onclick="updateQty('1', -1)">-</button>
-            <input type="number" class="qty-input-inline" value="1" readonly>
-            <button class="btn-qty-card" onclick="updateQty('1', 1)">+</button>
-          </div>
-        </div>
-      </div>
+    <!-- Grid Produk -->
+    <div class="product-grid" id="productGrid">
+      <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
     </div>
-  </main>
+  </div>
 
-  <!-- BOTTOM ACTION BAR -->
+  <!-- Bottom Action Bar -->
   <div class="bottom-bar">
     <div class="bottom-bar-info">
-      <span id="totalItemsText" class="bottom-bar-items">1 Item</span>
-      <span id="totalPriceText" class="bottom-bar-total">Rp10.000</span>
+      <span class="bottom-bar-items" id="barItemCount">0 Item</span>
+      <span class="bottom-bar-total" id="barTotalAmount">Rp0</span>
     </div>
-    <button id="btnCheckout" class="btn-checkout" onclick="openCheckoutModal()">Lanjutkan Order &rarr;</button>
+    <button class="btn-checkout" id="btnOpenCheckout" onclick="openCheckoutModal()" disabled>
+      Lanjutkan Pesanan →
+    </button>
   </div>
 
-
-  <!-- MODAL DETAIL MENU (POPUP BUBBLE - GAMBAR 3) -->
-  <div id="detail-modal" class="modal-overlay">
+  <!-- Modal Pilih Subkategori / Variasi & Mix Counter -->
+  <div class="modal-overlay" id="subCategoryModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span id="modal-header-title" class="modal-title">Dos Keju</span>
-        <button class="btn-close" onclick="closeDetailModal()">&times;</button>
+        <span class="modal-title" id="subModalTitle">Pilih Variasi & Penyajian</span>
+        <button class="btn-close" onclick="closeSubModal()">&times;</button>
       </div>
-
-      <div class="modal-body text-center">
-        <img id="modal-img" src="pempek.jpg" alt="Foto Produk" class="modal-product-img">
-        <h3 id="modal-title" class="modal-product-name">Dos Keju</h3>
-        <p id="modal-desc" class="modal-product-desc">pempek dos dengan isi keju</p>
-        <p id="modal-price" class="modal-product-price">Rp10.000</p>
-
-        <!-- Input Catatan -->
-        <div class="form-group" style="text-align: left;">
-          <label for="modal-notes">CATATAN UNTUK MENU INI</label>
-          <input type="text" id="modal-notes" class="form-input" placeholder="Contoh: Pedas, Tanpa Bawang...">
-        </div>
-
-        <!-- Tombol Counter (- [ 1 ] +) -->
-        <div class="qty-control-modal">
-          <button class="btn-modal-qty" onclick="changeModalQty(-1)">-</button>
-          <div id="modal-qty-val" class="modal-qty-box">1</div>
-          <button class="btn-modal-qty" onclick="changeModalQty(1)">+</button>
-        </div>
-      </div>
-
+      <div class="modal-body" id="subModalBody"></div>
       <div class="modal-footer">
-        <button class="btn-save-cart-red" onclick="saveModalToCart()">+ SIMPAN KE KERANJANG</button>
+        <button class="btn-confirm-pay" onclick="confirmSubCategorySelection()">+ TAMBAHKAN KE PESANAN</button>
       </div>
     </div>
   </div>
 
-
-  <!-- MODAL CHECKOUT & KERANJANG -->
-  <div id="cart-modal" class="modal-overlay">
+  <!-- Modal Checkout Kasir Langsung -->
+  <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">
       <div class="modal-header">
-        <span class="modal-title">Rincian Pesanan</span>
+        <span class="modal-title">Konfirmasi Pesanan</span>
         <button class="btn-close" onclick="closeCheckoutModal()">&times;</button>
       </div>
-
+      
       <div class="modal-body">
-        <div id="cartItemList">
-          <!-- Item keranjang di-render via JS -->
+        <!-- 1. RINCIAN PESANAN (DITAMPILKAN PERTAMA) -->
+        <div class="form-group">
+          <label style="font-weight: bold; color: #2e7d32; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
+          <div id="modalCartList"></div>
         </div>
 
-        <div class="form-group" style="margin-top: 16px;">
-          <label for="paymentMethod">METODE PEMBAYARAN</label>
-          <select id="paymentMethod" class="form-select">
-            <option value="Tunai">Tunai (Cash)</option>
+        <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+        <!-- 2. PELANGGAN -->
+        <div class="form-group">
+          <label for="customerSelect">PELANGGAN / CUSTOMER</label>
+          <select id="customerSelect" class="form-select">
+            <option value="Umum">Umum / Walk-in</option>
+          </select>
+        </div>
+
+        <!-- 3. METODE PEMBAYARAN -->
+        <div class="form-group">
+          <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
+          <select id="paymentMethodSelect" class="form-select">
+            <option value="Tunai">Tunai</option>
             <option value="QRIS">QRIS</option>
             <option value="Transfer">Transfer Bank</option>
           </select>
+        </div>
+
+        <!-- 4. CATATAN KHUSUS -->
+        <div class="form-group">
+          <label for="orderNote">CATATAN KHUSUS / NOTE</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
+          
+          <div class="quick-chips">
+            <button class="chip-btn" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
+            <button class="chip-btn" onclick="addQuickNote('Makan di Tempat')">+ Dine-In</button>
+            <button class="chip-btn" onclick="addQuickNote('Pedas')">+ Pedas</button>
+            <button class="chip-btn" onclick="addQuickNote('Sedang')">+ Pedas Sedang</button>
+            <button class="chip-btn" onclick="addQuickNote('Tanpa Cuka')">+ Tanpa Cuka</button>
+          </div>
         </div>
       </div>
 
       <div class="modal-footer">
         <div class="summary-line">
-          <span>Total Bayar</span>
-          <span id="modalCartTotal">Rp10.000</span>
+          <span>TOTAL:</span>
+          <span id="modalTotalAmount">Rp0</span>
         </div>
         <button class="btn-confirm-pay" onclick="processPayment()">BAYAR & PRINT STRUK</button>
       </div>
     </div>
   </div>
 
-  <!-- AREA PRINT STRUK THERMAL -->
+  
+  <!-- Modal Pesanan Masuk (Katalog Online) -->
+  <div class="modal-overlay" id="pendingOrdersModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">🛒 Pesanan Masuk Katalog</span>
+        <button class="btn-close" onclick="closePendingOrdersModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="pendingOrdersList">
+        <p style="text-align:center; color:#6c757d; padding:20px;">Memuat pesanan...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Pengaturan -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title">⚙️ Pengaturan POS & Tampilan</span>
+        <button class="btn-close" onclick="closeSettingsModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>TAMPILAN GAMBAR MENU</label>
+          <div class="toggle-container">
+            <span style="font-size: 13px; font-weight: 600; color: #333;">Tampilkan Gambar Produk</span>
+            <label class="switch">
+              <input type="checkbox" id="settingShowImages">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="settingPrintMode">METODE PENCETAKAN STRUK</label>
+          <select id="settingPrintMode" class="form-select">
+            <option value="rawbt">Direct RawBT App (Rekomendasi HP Android)</option>
+            <option value="browser">Sistem Browser Native (Window.print)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="settingPaperSize">UKURAN KERTAS PRINTER</label>
+          <select id="settingPaperSize" class="form-select">
+            <option value="58mm">58 mm (Printer Kasir Mini)</option>
+            <option value="80mm">80 mm (Printer Kasir Sedang/Besar)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="settingHeaderStore">NAMA TOKO (HEADER)</label>
+          <input type="text" id="settingHeaderStore" class="form-input" placeholder="KTLM Kitchen">
+        </div>
+
+        <div class="form-group">
+          <label for="settingAddressStore">ALAMAT / KETERANGAN</label>
+          <input type="text" id="settingAddressStore" class="form-input" placeholder="Jl. Laks Martadinata 59D">
+        </div>
+
+        <div class="form-group">
+          <label for="settingWaStore">NOMOR WA / TELP</label>
+          <input type="text" id="settingWaStore" class="form-input" placeholder="085838976880">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-confirm-pay" onclick="savePrinterSettings()">SIMPAN PENGATURAN</button>
+      </div>
+    </div>
+  </div>
+
   <div id="receipt-print"></div>
 
   <script src="kasir.js"></script>
+  
+  <!-- Notification Bubble Cetak Ulang -->
+  <div id="toastReprint" class="toast-reprint" style="display: none;">
+    <span>✅ Transaksi Berhasil</span>
+    <button type="button" class="btn-reprint" onclick="cetakUlangStrukTerakhir()">🖨️ Cetak Ulang Struk</button>
+    <button type="button" class="btn-close-toast" onclick="hideReprintToast()">✕</button>
+  </div>
+
+  
 </body>
 </html>

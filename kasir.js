@@ -11,6 +11,95 @@ let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
 let lastTransaction = null;
+let selectedProductForModal = null;
+let currentModalQty = 1;
+
+// Render Kartu Produk di Grid (Gambar 1)
+function renderProducts(products) {
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '';
+
+  products.forEach(product => {
+    const itemInCart = cart.find(c => c.id === product.id);
+    const qty = itemInCart ? itemInCart.qty : 0;
+
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    
+    // Saat gambar / area kartu diklik -> Buka Modal Detail (Gambar 3)
+    card.onclick = (e) => {
+      if (!e.target.classList.contains('btn-circle-blue') && !e.target.classList.contains('btn-card-add')) {
+        openDetailModal(product);
+      }
+    };
+
+    let actionButtonHTML = '';
+    if (qty > 0) {
+      // Tombol Pill Biru (- 1 +)
+      actionButtonHTML = `
+        <div class="card-qty-pill">
+          <button class="btn-circle-blue" onclick="updateCartQty('${product.id}', -1)">-</button>
+          <span class="card-qty-val">${qty}</span>
+          <button class="btn-circle-blue" onclick="updateCartQty('${product.id}', 1)">+</button>
+        </div>
+      `;
+    } else {
+      // Tombol Outlined 'Add'
+      actionButtonHTML = `
+        <button class="btn-card-add" onclick="openDetailModalFromId('${product.id}')">Add</button>
+      `;
+    }
+
+    card.innerHTML = `
+      <img src="${product.image || 'placeholder.jpg'}" alt="${product.name}">
+      <div class="product-info">
+        <h4>${product.name}</h4>
+        <p class="price">Rp${product.price.toLocaleString('id-ID')}</p>
+        ${actionButtonHTML}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// Buka Modal Detail saat Klik Gambar (Gambar 3)
+function openDetailModal(product) {
+  selectedProductForModal = product;
+  currentModalQty = 1;
+
+  document.getElementById('modal-header-title').innerText = product.name;
+  document.getElementById('modal-img').src = product.image || 'placeholder.jpg';
+  document.getElementById('modal-title').innerText = product.name;
+  document.getElementById('modal-desc').innerText = product.description || 'Pilihan menu lezat dan berkualitas.';
+  document.getElementById('modal-price').innerText = `Rp${product.price.toLocaleString('id-ID')}`;
+  document.getElementById('modal-notes').value = '';
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
+
+  document.getElementById('detail-modal').style.display = 'flex';
+}
+
+function openDetailModalFromId(productId) {
+  const product = products.find(p => p.id === productId);
+  if (product) openDetailModal(product);
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').style.display = 'none';
+}
+
+function changeModalQty(delta) {
+  currentModalQty += delta;
+  if (currentModalQty < 1) currentModalQty = 1;
+  document.getElementById('modal-qty-val').innerText = currentModalQty;
+}
+
+// Simpan dari Modal Ke Keranjang (+ SIMPAN KE KERANJANG)
+function saveModalToCart() {
+  if (!selectedProductForModal) return;
+  const note = document.getElementById('modal-notes').value;
+  addToCart(selectedProductForModal, currentModalQty, note);
+  closeDetailModal();
+}
 
 let posSettings = {
   showImages: true,

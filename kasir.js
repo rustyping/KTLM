@@ -21,6 +21,9 @@ let posSettings = {
   waPhone: ''
 };
 
+// =========================================
+// HELPER & INITIALIZATION
+// =========================================
 function formatRupiah(angka) {
   return (angka || 0).toLocaleString('id-ID');
 }
@@ -75,6 +78,9 @@ function renderCustomers() {
   }
 }
 
+// =========================================
+// CATEGORIES & PRODUCT LIST RENDER
+// =========================================
 function renderCategories() {
   const catBar = document.getElementById("categoryBar");
   if (!catBar) return;
@@ -88,6 +94,29 @@ function renderCategories() {
   catBar.innerHTML = categories.map(cat => 
     `<button class="cat-btn ${cat==='ALL'?'active':''}" onclick="filterCategory('${cat}', this)">${cat}</button>`
   ).join('');
+}
+
+function filterCategory(cat, btn) {
+  selectedCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterProducts();
+}
+
+function filterProducts() {
+  const searchInput = document.getElementById("searchInput");
+  const keyword = searchInput ? searchInput.value.toLowerCase() : "";
+  
+  let filtered = allProducts.filter(p => {
+    const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
+    const isAktif = statusAktif === 'Y';
+    const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
+    const matchSearch = p.nama.toLowerCase().includes(keyword);
+    
+    return isAktif && matchCat && matchSearch;
+  });
+
+  renderProducts(filtered);
 }
 
 function renderProducts(products) {
@@ -110,6 +139,17 @@ function renderProducts(products) {
     const imgUrl = fixImageUrl(rawImgUrl);
     const isSelected = totalQtyInCart > 0;
 
+    const qtyControlsHtml = `
+      <div class="qty-badge-inline" onclick="event.stopPropagation()">
+        <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
+        <input type="number" min="0" class="qty-input-inline" 
+               value="${totalQtyInCart}" 
+               onchange="onQtyDirectChange('${p.id}', this.value)"
+               onfocus="this.select()">
+        <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
+      </div>
+    `;
+
     if (posSettings.showImages) {
       return `
         <div class="product-card ${isSelected ? 'has-selected' : ''}" onclick="handleProductClick('${p.id}', event)">
@@ -117,23 +157,12 @@ function renderProducts(products) {
             <img src="${imgUrl}" alt="${p.nama}" class="product-img" onerror="this.src='${DEFAULT_PLACEHOLDER}'" loading="lazy">
             ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
           </div>
-          
           <div class="product-details">
             <div class="product-info-text">
               <div class="product-title">${p.nama}</div>
               <div class="product-price">Rp${formatRupiah(p.harga)}</div>
             </div>
-
-            ${isSelected ? `
-              <div class="qty-badge-inline" onclick="event.stopPropagation()">
-                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
-                <input type="number" min="0" class="qty-input-inline" 
-                       value="${totalQtyInCart}" 
-                       onchange="onQtyDirectChange('${p.id}', this.value)"
-                       onfocus="this.select()">
-                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
-              </div>
-            ` : ''}
+            ${isSelected ? qtyControlsHtml : ''}
           </div>
         </div>
       `;
@@ -145,23 +174,16 @@ function renderProducts(products) {
             <div class="product-price">Rp${formatRupiah(p.harga)}</div>
             ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
           </div>
-          
-          ${isSelected ? `
-            <div class="qty-badge-inline" onclick="event.stopPropagation()">
-              <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
-              <input type="number" min="0" class="qty-input-inline" 
-                     value="${totalQtyInCart}" 
-                     onchange="onQtyDirectChange('${p.id}', this.value)"
-                     onfocus="this.select()">
-              <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
-            </div>
-          ` : ''}
+          ${isSelected ? qtyControlsHtml : ''}
         </div>
       `;
     }
   }).join('');
 }
 
+// =========================================
+// INLINE & DIRECT QTY CONTROLS
+// =========================================
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
   const product = allProducts.find(p => p.id === productId);
@@ -184,6 +206,23 @@ function changeProductQtyInline(productId, delta, event) {
   }
 }
 
+function onQtyDirectChange(productId, val) {
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  const newQty = parseInt(val) || 0;
+  const subCategories = getSubCategoriesForProduct(product);
+
+  if (subCategories.length > 0) {
+    openSubCategoryModal(product, subCategories);
+  } else {
+    updateDirectQty(productId, newQty);
+  }
+}
+
+// =========================================
+// SUB-CATEGORY / VARIASI MODAL LOGIC
+// =========================================
 function getSubCategoriesForProduct(product) {
   if (!allSubcategories || allSubcategories.length === 0) return [];
   return allSubcategories.filter(s => 
@@ -205,26 +244,14 @@ function handleProductClick(id, event) {
   }
 }
 
-function onQtyDirectChange(productId, val) {
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
-
-  const newQty = parseInt(val) || 0;
-  const subCategories = getSubCategoriesForProduct(product);
-
-  if (subCategories.length > 0) {
-    openSubCategoryModal(product, subCategories);
-  } else {
-    updateDirectQty(productId, newQty);
-  }
-}
-
 function openSubCategoryModal(product, subCategories) {
   activeSubProduct = product;
   selectedSubOptions = {};
 
-  document.getElementById("subModalTitle").innerText = product.nama;
+  const titleEl = document.getElementById("subModalTitle");
+  if (titleEl) titleEl.innerText = product.nama;
   const modalBody = document.getElementById("subModalBody");
+  if (!modalBody) return;
 
   let html = '';
   subCategories.forEach((group, index) => {
@@ -287,13 +314,14 @@ function openSubCategoryModal(product, subCategories) {
 
   html += `
     <div class="form-group" style="margin-top:15px;">
-      <label>JUMLAH PAKET / PORSI</label>
+      <label style="font-size:12px; font-weight:bold; color:#495057;">JUMLAH PAKET / PORSI</label>
       <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
     </div>
   `;
 
   modalBody.innerHTML = html;
-  document.getElementById("subCategoryModal").style.display = "flex";
+  const subModal = document.getElementById("subCategoryModal");
+  if (subModal) subModal.style.display = "flex";
 }
 
 function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
@@ -315,18 +343,22 @@ function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
 function selectSingleSubOption(groupName, optionValue, btn) {
   selectedSubOptions[groupName] = optionValue;
   const parent = btn.parentElement;
-  parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
+  if (parent) {
+    parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
+  }
   btn.classList.add('selected');
 }
 
 function closeSubModal() {
-  document.getElementById("subCategoryModal").style.display = "none";
+  const subModal = document.getElementById("subCategoryModal");
+  if (subModal) subModal.style.display = "none";
   activeSubProduct = null;
 }
 
 function confirmSubCategorySelection() {
   if (!activeSubProduct) return;
-  const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
+  const qtyInput = document.getElementById("subQtyInput");
+  const qty = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
   
   let formattedSelections = [];
 
@@ -348,11 +380,13 @@ function confirmSubCategorySelection() {
   });
 
   const subVariantText = formattedSelections.join(' | ');
-
   addToCart(activeSubProduct, qty, subVariantText);
   closeSubModal();
 }
 
+// =========================================
+// CART MANAGEMENT
+// =========================================
 function addToCart(product, qty, subVariant) {
   const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
   if (existing) {
@@ -394,102 +428,74 @@ function updateQtyInCartList(index, delta) {
   }
 }
 
-function filterCategory(cat, btn) {
-  selectedCategory = cat;
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  filterProducts();
-}
-
-function filterProducts() {
-  const searchInput = document.getElementById("searchInput");
-  const keyword = searchInput ? searchInput.value.toLowerCase() : "";
-  
-  let filtered = allProducts.filter(p => {
-    const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
-    const isAktif = statusAktif === 'Y';
-
-    const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
-    const matchSearch = p.nama.toLowerCase().includes(keyword);
-    
-    return isAktif && matchCat && matchSearch;
-  });
-
-  renderProducts(filtered);
-}
-
 function updateCartUI() {
   const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
 
-  const itemCountEl = document.getElementById("barItemCount");
-  const totalAmountEl = document.getElementById("barTotalAmount");
-  const modalTotalEl = document.getElementById("modalTotalAmount");
-  const btnCheckout = document.getElementById("btnOpenCheckout");
+  const itemCountEl = document.getElementById("barItemCount") || document.getElementById("totalItemsText");
+  const totalAmountEl = document.getElementById("barTotalAmount") || document.getElementById("totalPriceText");
+  const modalTotalEl = document.getElementById("modalTotalAmount") || document.getElementById("cartTotalPrice");
+  const btnCheckout = document.getElementById("btnOpenCheckout") || document.getElementById("btnCheckout");
 
   if (itemCountEl) itemCountEl.innerText = `${totalQty} Item`;
   if (totalAmountEl) totalAmountEl.innerText = `Rp${formatRupiah(totalPrice)}`;
   if (modalTotalEl) modalTotalEl.innerText = `Rp${formatRupiah(totalPrice)}`;
   if (btnCheckout) btnCheckout.disabled = cart.length === 0;
+
+  calculateChange();
 }
 
+function calculateChange() {
+  const totalPrice = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
+  const cashPaidInput = document.getElementById("cashPaidInput");
+  if (!cashPaidInput) return;
+  const cashPaid = parseFloat(cashPaidInput.value) || 0;
+  const change = cashPaid - totalPrice;
+
+  const changeEl = document.getElementById("changeText");
+  if (changeEl) {
+    if (change < 0) {
+      changeEl.innerText = "Kurang Rp" + formatRupiah(Math.abs(change));
+      changeEl.style.color = "#d32f2f";
+    } else {
+      changeEl.innerText = "Rp" + formatRupiah(change);
+      changeEl.style.color = "#2e7d32";
+    }
+  }
+}
+
+// =========================================
+// CHECKOUT MODAL & PAYMENT
+// =========================================
 function openCheckoutModal() {
   if (cart.length === 0) return;
   renderModalCartList();
-  document.getElementById("checkoutModal").style.display = "flex";
+  const modal = document.getElementById("checkoutModal") || document.getElementById("cart-modal");
+  if (modal) modal.style.display = "flex";
 }
 
 function closeCheckoutModal() {
-  document.getElementById("checkoutModal").style.display = "none";
+  const modal = document.getElementById("checkoutModal") || document.getElementById("cart-modal");
+  if (modal) modal.style.display = "none";
 }
 
 function renderModalCartList() {
-  const container = document.getElementById("modalCartList");
+  const container = document.getElementById("modalCartList") || document.getElementById("cartItemList");
   if (!container) return;
   container.innerHTML = cart.map((item, idx) => `
-    <div class="cart-item-row">
+    <div class="cart-item-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
       <div>
-        <div class="cart-item-name">${item.product.nama}</div>
-        ${item.subVariant ? `<div class="cart-item-sub">[ ${item.subVariant} ]</div>` : ''}
-        <div class="cart-item-price">Rp${formatRupiah(item.product.harga)} x ${item.qty}</div>
+        <div class="cart-item-name" style="font-weight: 700; font-size: 13px;">${item.product.nama}</div>
+        ${item.subVariant ? `<div class="cart-item-sub" style="font-size: 11px; color: #6c757d;">[ ${item.subVariant} ]</div>` : ''}
+        <div class="cart-item-price" style="font-size: 12px; color: #2e7d32; font-weight: 700;">Rp${formatRupiah(item.product.harga)} x ${item.qty}</div>
       </div>
-      <div class="qty-controls">
+      <div class="qty-controls" style="display: flex; align-items: center; gap: 6px;">
         <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, -1)">-</button>
         <span style="font-size:13px; font-weight:bold;">${item.qty}</span>
         <button class="btn-qty-mini" onclick="updateQtyInCartList(${idx}, 1)">+</button>
       </div>
     </div>
   `).join('');
-}
-
-function openSettingsModal() {
-  document.getElementById("settingShowImages").checked = posSettings.showImages;
-  document.getElementById("settingPrintMode").value = posSettings.printMode;
-  document.getElementById("settingPaperSize").value = posSettings.paperSize;
-  document.getElementById("settingHeaderStore").value = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
-  document.getElementById("settingAddressStore").value = posSettings.address || storeConfig.Alamat || '';
-  document.getElementById("settingWaStore").value = posSettings.waPhone || storeConfig.WA || '';
-  document.getElementById("settingsModal").style.display = "flex";
-}
-
-function closeSettingsModal() {
-  document.getElementById("settingsModal").style.display = "none";
-}
-
-function savePrinterSettings() {
-  posSettings.showImages = document.getElementById("settingShowImages").checked;
-  posSettings.printMode = document.getElementById("settingPrintMode").value;
-  posSettings.paperSize = document.getElementById("settingPaperSize").value;
-  posSettings.headerName = document.getElementById("settingHeaderStore").value;
-  posSettings.address = document.getElementById("settingAddressStore").value;
-  posSettings.waPhone = document.getElementById("settingWaStore").value;
-
-  localStorage.setItem('ktlm_pos_settings', JSON.stringify(posSettings));
-  document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
-
-  filterProducts();
-  alert("Pengaturan tersimpan!");
-  closeSettingsModal();
 }
 
 function addQuickNote(text) {
@@ -505,7 +511,7 @@ function addQuickNote(text) {
 async function processPayment() {
   if (cart.length === 0) return;
 
-  const btnPay = document.querySelector("#checkoutModal .btn-confirm-pay");
+  const btnPay = document.querySelector("#checkoutModal .btn-confirm-pay, #cart-modal .btn-confirm-pay");
   if (btnPay) {
     btnPay.disabled = true;
     btnPay.innerText = "PROSES SIMPAN...";
@@ -515,11 +521,12 @@ async function processPayment() {
   const invoiceNo = "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
   const waktuTx = now.toLocaleString('id-ID');
   const selectedCustomer = document.getElementById("customerSelect")?.value || "Umum";
-  const selectedPayment = document.getElementById("paymentMethodSelect")?.value || "Tunai";
+  const selectedPayment = document.getElementById("paymentMethodSelect")?.value || document.getElementById("paymentMethod")?.value || "Tunai";
   const noteValue = document.getElementById("orderNote")?.value.trim() || "";
   
   const totalBelanja = cart.reduce((sum, i) => sum + ((i.product.harga || 0) * i.qty), 0);
   const totalHpp = cart.reduce((sum, i) => sum + ((i.product.hpp || 0) * i.qty), 0);
+  const cashPaid = parseFloat(document.getElementById("cashPaidInput")?.value) || totalBelanja;
   
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
@@ -540,8 +547,8 @@ async function processPayment() {
     totalBelanja: totalBelanja,
     totalHpp: totalHpp,
     jenisPembayaran: selectedPayment,
-    uangDiterima: totalBelanja,
-    kembalian: 0,
+    uangDiterima: cashPaid,
+    kembalian: Math.max(0, cashPaid - totalBelanja),
     kasir: "Kasir",
     sumber: "Kasir",
     status: "SELESAI",
@@ -563,6 +570,7 @@ async function processPayment() {
     alert("Transaksi Berhasil Disimpan!");
     cart = [];
     if (document.getElementById("orderNote")) document.getElementById("orderNote").value = "";
+    if (document.getElementById("cashPaidInput")) document.getElementById("cashPaidInput").value = "";
     updateCartUI();
     closeCheckoutModal();
     filterProducts();
@@ -577,6 +585,9 @@ async function processPayment() {
   }
 }
 
+// =========================================
+// RECEIPT PRINTING & REPRINT
+// =========================================
 function printReceipt(tx, note) {
   const storeTitle = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
   const storeAddr = posSettings.address || storeConfig.Alamat || '';
@@ -602,6 +613,10 @@ function printReceipt(tx, note) {
     receiptText += `--------------------------------\n`;
     if (noteToPrint) receiptText += `Note: ${noteToPrint}\n--------------------------------\n`;
     receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
+    if (tx.uangDiterima) {
+      receiptText += `BAYAR: Rp${formatRupiah(tx.uangDiterima)}\n`;
+      receiptText += `KEMBALI: Rp${formatRupiah(tx.kembalian || 0)}\n`;
+    }
     receiptText += `--------------------------------\n`;
     receiptText += `${storeBottom}\n\n\n`;
 
@@ -642,6 +657,39 @@ function printReceipt(tx, note) {
   }
 }
 
+function saveLastTransaction(payloadData) {
+  lastTransaction = payloadData;
+  localStorage.setItem("lastPOSOrder", JSON.stringify(payloadData));
+  showReprintToast();
+}
+
+function showReprintToast() {
+  const toast = document.getElementById("toastReprint");
+  if (toast) toast.style.display = "flex";
+}
+
+function hideReprintToast() {
+  const toast = document.getElementById("toastReprint");
+  if (toast) toast.style.display = "none";
+}
+
+function cetakUlangStrukTerakhir() {
+  const data = lastTransaction || JSON.parse(localStorage.getItem("lastPOSOrder"));
+  if (!data) {
+    alert("Belum ada data transaksi terakhir.");
+    return;
+  }
+  
+  if (data.isCatalog) {
+    printReceiptFromCatalog(data);
+  } else {
+    printReceipt(data, data.note);
+  }
+}
+
+// =========================================
+// INTEGRATION WITH PENDING CATALOG ORDERS
+// =========================================
 async function checkPendingOrders() {
   try {
     const res = await fetch(`${API_URL}?action=getPendingOrders`);
@@ -660,11 +708,13 @@ async function checkPendingOrders() {
 
 function openPendingOrdersModal() {
   renderPendingOrders();
-  document.getElementById("pendingOrdersModal").style.display = "flex";
+  const modal = document.getElementById("pendingOrdersModal");
+  if (modal) modal.style.display = "flex";
 }
 
 function closePendingOrdersModal() {
-  document.getElementById("pendingOrdersModal").style.display = "none";
+  const modal = document.getElementById("pendingOrdersModal");
+  if (modal) modal.style.display = "none";
 }
 
 function renderPendingOrders() {
@@ -690,7 +740,7 @@ function renderPendingOrders() {
         <span>Total: Rp${formatRupiah(order.totalBelanja)}</span>
         <span style="color:#2e7d32; font-size:11px; background:#e8f5e9; padding:2px 8px; border-radius:4px;">${order.jenisPembayaran}</span>
       </div>
-      <button onclick="processAndPrintCatalogOrder(${order.rowNum})" class="btn-confirm-pay" style="padding:10px; font-size:13px;">
+      <button onclick="processAndPrintCatalogOrder(${order.rowNum})" class="btn-confirm-pay" style="padding:10px; font-size:13px; width:100%;">
         🖨️ PROSES & PRINT STRUK
       </button>
     </div>
@@ -813,37 +863,57 @@ function printReceiptFromCatalog(order) {
   }
 }
 
-function saveLastTransaction(payloadData) {
-  lastTransaction = payloadData;
-  localStorage.setItem("lastPOSOrder", JSON.stringify(payloadData));
-  showReprintToast();
+// =========================================
+// SETTINGS MODAL LOGIC
+// =========================================
+function openSettingsModal() {
+  const showImgCheck = document.getElementById("settingShowImages");
+  const printModeSel = document.getElementById("settingPrintMode");
+  const paperSizeSel = document.getElementById("settingPaperSize");
+  const headerInput = document.getElementById("settingHeaderStore");
+  const addrInput = document.getElementById("settingAddressStore");
+  const waInput = document.getElementById("settingWaStore");
+
+  if (showImgCheck) showImgCheck.checked = posSettings.showImages;
+  if (printModeSel) printModeSel.value = posSettings.printMode;
+  if (paperSizeSel) paperSizeSel.value = posSettings.paperSize;
+  if (headerInput) headerInput.value = posSettings.headerName || storeConfig.Header || 'KTLM Kitchen';
+  if (addrInput) addrInput.value = posSettings.address || storeConfig.Alamat || '';
+  if (waInput) waInput.value = posSettings.waPhone || storeConfig.WA || '';
+
+  const settingsModal = document.getElementById("settingsModal") || document.getElementById("settings-modal");
+  if (settingsModal) settingsModal.style.display = "flex";
 }
 
-function showReprintToast() {
-  const toast = document.getElementById("toastReprint");
-  if (toast) toast.style.display = "flex";
+function closeSettingsModal() {
+  const settingsModal = document.getElementById("settingsModal") || document.getElementById("settings-modal");
+  if (settingsModal) settingsModal.style.display = "none";
 }
 
-function hideReprintToast() {
-  const toast = document.getElementById("toastReprint");
-  if (toast) toast.style.display = "none";
+function savePrinterSettings() {
+  const showImgCheck = document.getElementById("settingShowImages");
+  const printModeSel = document.getElementById("settingPrintMode");
+  const paperSizeSel = document.getElementById("settingPaperSize");
+  const headerInput = document.getElementById("settingHeaderStore");
+  const addrInput = document.getElementById("settingAddressStore");
+  const waInput = document.getElementById("settingWaStore");
+
+  if (showImgCheck) posSettings.showImages = showImgCheck.checked;
+  if (printModeSel) posSettings.printMode = printModeSel.value;
+  if (paperSizeSel) posSettings.paperSize = paperSizeSel.value;
+  if (headerInput) posSettings.headerName = headerInput.value;
+  if (addrInput) posSettings.address = addrInput.value;
+  if (waInput) posSettings.waPhone = waInput.value;
+
+  localStorage.setItem('ktlm_pos_settings', JSON.stringify(posSettings));
+  document.documentElement.style.setProperty('--paper-width', posSettings.paperSize);
+
+  filterProducts();
+  alert("Pengaturan tersimpan!");
+  closeSettingsModal();
 }
 
-function cetakUlangStrukTerakhir() {
-  const data = lastTransaction || JSON.parse(localStorage.getItem("lastPOSOrder"));
-  if (!data) {
-    alert("Belum ada data transaksi terakhir.");
-    return;
-  }
-  
-  if (data.isCatalog) {
-    printReceiptFromCatalog(data);
-  } else {
-    printReceipt(data, data.note);
-  }
-}
-
-// Inisialisasi
+// Initial Run
 loadData();
 setInterval(checkPendingOrders, 15000);
 checkPendingOrders();

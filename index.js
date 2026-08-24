@@ -266,27 +266,49 @@ function openProductDetailModal(product) {
   const existingItem = cart.find(function(item) { return item.product.id === product.id; });
   currentDetailQty = existingItem ? existingItem.qty : 1;
 
-  // Header Modal (Judul Utama)
-  const titleEl = document.getElementById("detailModalTitle");
-  if (titleEl) titleEl.innerText = product.nama;
+  // Cek struktur data produk di Console Browser (F12) untuk memastikan nama kolom
+  console.log("Data Produk:", product);
 
-  // Gambar Produk
+  const titleEl = document.getElementById("detailModalTitle");
+  if (titleEl) titleEl.innerText = product.nama || "";
+
+  const nameEl = document.getElementById("detailModalName");
+  if (nameEl) nameEl.innerText = product.nama || "";
+
+  // 1. CARI KETERANGAN DARI KOLOM F (Dengam Fallback Fleksibel)
+  let descText = "";
+  if (product) {
+    // Cek kecocokan nama properti umum
+    descText = product.keterangan || product.Keterangan || product.KETERANGAN || 
+               product.deskripsi || product.Deskripsi || product.ket || product.Ket || 
+               product[5] || "";
+
+    // Jika belum ketemu, cari nama header kolom yang mengandung kata 'keterangan', 'deskripsi', atau 'ket'
+    if (!descText && typeof product === 'object') {
+      const foundKey = Object.keys(product).find(function(key) {
+        return /keterangan|deskripsi|ket|info|detail/i.test(key);
+      });
+      if (foundKey) {
+        descText = product[foundKey];
+      }
+    }
+  }
+
+  // 2. TAMPILKAN KE ELEMEN #detailModalDesc
+  const descEl = document.getElementById("detailModalDesc");
+  if (descEl) {
+    descEl.innerText = descText || ""; 
+  }
+
+  const priceEl = document.getElementById("detailModalPrice");
+  if (priceEl) priceEl.innerText = "Rp" + (product.harga || 0).toLocaleString('id-ID');
+
   const imgEl = document.getElementById("detailModalImg");
   if (imgEl) {
     const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
     imgEl.src = fixImageUrl(rawImgUrl);
   }
 
-  // Teks Dibawah Gambar (Gambar 2) -> Mengambil Kolom F (Keterangan)
-  const descEl = document.getElementById("detailModalDesc");
-  const descText = product.keterangan || product.Keterangan || product['Keterangan'] || product.deskripsi || product[5] || "";
-  if (descEl) descEl.innerText = descText;
-
-  // Harga Produk
-  const priceEl = document.getElementById("detailModalPrice");
-  if (priceEl) priceEl.innerText = "Rp" + (product.harga || 0).toLocaleString('id-ID');
-
-  // Input Catatan & Qty
   const noteEl = document.getElementById("detailModalNote");
   if (noteEl) noteEl.value = existingItem ? (existingItem.note || "") : "";
 
@@ -299,6 +321,7 @@ function openProductDetailModal(product) {
   const modal = document.getElementById("productDetailModal");
   if (modal) modal.style.display = "flex";
 }
+
 
 function closeProductDetailModal() {
   const modal = document.getElementById("productDetailModal");

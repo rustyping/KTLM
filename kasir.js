@@ -192,17 +192,70 @@ function getSubCategoriesForProduct(product) {
   );
 }
 
+/* =========================================================
+   TAHAP 1: MODAL DETAIL PRODUK (INFOKAN & PILIH VARIASI/TAMBAH)
+   ========================================================= */
 function handleProductClick(id, event) {
   const product = allProducts.find(p => p.id === id);
   if (!product) return;
+  bukaModalDetail(product);
+}
 
-  const subCategories = getSubCategoriesForProduct(product);
+function bukaModalDetail(produk) {
+  const rawImgUrl = produk['Link Gambar'] || produk.linkGambar || produk.gambar || produk[10];
+  const imgUrl = fixImageUrl(rawImgUrl);
+  
+  const modalImg = document.getElementById('modalGambar');
+  if (modalImg) modalImg.src = imgUrl;
 
-  if (subCategories.length > 0) {
+  const modalNama = document.getElementById('modalNama');
+  if (modalNama) modalNama.innerText = produk.nama;
+
+  const modalDesc = document.getElementById('modalDeskripsi');
+  if (modalDesc) modalDesc.innerText = produk.deskripsi || produk.Deskripsi || 'Tidak ada deskripsi.';
+
+  const modalHarga = document.getElementById('modalHarga');
+  if (modalHarga) modalHarga.innerText = 'Rp ' + formatRupiah(produk.harga);
+
+  const subCategories = getSubCategoriesForProduct(produk);
+  const containerAksi = document.getElementById('modalAksi');
+  
+  if (containerAksi) {
+    if (subCategories.length > 0) {
+      containerAksi.innerHTML = `
+        <button class="btn-tambah" style="width:100%; padding:10px; background:#2e7d32; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="eksekusiDariModal('${produk.id}', true)">
+          + Pilih Variasi / Paket
+        </button>
+      `;
+    } else {
+      containerAksi.innerHTML = `
+        <button class="btn-tambah" style="width:100%; padding:10px; background:#2e7d32; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="eksekusiDariModal('${produk.id}', false)">
+          + Masukkan Keranjang
+        </button>
+      `;
+    }
+  }
+
+  const modalDetail = document.getElementById('modalDetail');
+  if (modalDetail) modalDetail.style.display = 'flex';
+}
+
+function eksekusiDariModal(productId, hasSub) {
+  tutupModalDetail();
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  if (hasSub) {
+    const subCategories = getSubCategoriesForProduct(product);
     openSubCategoryModal(product, subCategories);
   } else {
     addToCart(product, 1, "");
   }
+}
+
+function tutupModalDetail() {
+  const modalDetail = document.getElementById('modalDetail');
+  if (modalDetail) modalDetail.style.display = 'none';
 }
 
 function onQtyDirectChange(productId, val) {
@@ -842,6 +895,14 @@ function cetakUlangStrukTerakhir() {
     printReceipt(data, data.note);
   }
 }
+
+// Handler event klik luar modal untuk menutup Modal Detail Produk
+window.addEventListener('click', function(event) {
+  const modalDetail = document.getElementById('modalDetail');
+  if (event.target === modalDetail) {
+    tutupModalDetail();
+  }
+});
 
 // Inisialisasi
 loadData();

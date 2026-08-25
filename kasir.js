@@ -99,10 +99,9 @@ function renderProducts(products) {
   }
   
   grid.innerHTML = products.map(p => {
-    // Hitung total qty produk ini di keranjang
-  const totalQtyInCart = cart
-    .filter(c => String(c.product.id) === String(p.id)) // <-- Pastikan ada String() nya
-    .reduce((sum, i) => sum + i.qty, 0);
+    const totalQtyInCart = cart
+      .filter(c => String(c.product.id) === String(p.id))
+      .reduce((sum, i) => sum + i.qty, 0);
 
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;
@@ -169,17 +168,13 @@ function renderProducts(products) {
   }).join('');
 }
 
-// Fungsi baru untuk menangani klik tombol "Add"
 function handleAddClick(productId, event) {
-  // Cegah event klik merembet ke kartu menu (supaya popup modal tidak terbuka saat nge-klik tombol Add)
   if (event) event.stopPropagation(); 
-  
-  const product = allProducts.find(p => p.id === productId);
+  const product = allProducts.find(p => String(p.id) === String(productId));
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
   
-  // Jika menu punya variasi/paket, buka modal variasi. Jika tidak, langsung masuk keranjang 1 qty.
   if (subCategories.length > 0) {
     openSubCategoryModal(product, subCategories);
   } else {
@@ -187,11 +182,8 @@ function handleAddClick(productId, event) {
   }
 }
 
-
-// 1. UPDATE QTY MENU DARI LUAR (TOMBOL - / + DI KARTU)
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
-  // PENGAMAN: Paksa ID menjadi String
   const product = allProducts.find(p => String(p.id) === String(productId));
   if (!product) return;
 
@@ -207,17 +199,30 @@ function changeProductQtyInline(productId, delta, event) {
       }
     }
   } else {
-    // PENGAMAN: Paksa ID menjadi String saat menghitung jumlah
     const currentQty = cart.filter(c => String(c.product.id) === String(productId)).reduce((sum, i) => sum + i.qty, 0);
     updateDirectQty(productId, currentQty + delta);
+  }
+}
+
+function onQtyDirectChange(productId, val) {
+  const product = allProducts.find(p => String(p.id) === String(productId));
+  if (!product) return;
+
+  const newQty = parseInt(val) || 0;
+  const subCategories = getSubCategoriesForProduct(product);
+
+  if (subCategories.length > 0) {
+    openSubCategoryModal(product, subCategories);
+  } else {
+    updateDirectQty(productId, newQty);
   }
 }
 
 function getSubCategoriesForProduct(product) {
   if (!allSubcategories || allSubcategories.length === 0) return [];
   return allSubcategories.filter(s => 
-    (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
-    (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
+    (s.id_produk && String(s.id_produk).toLowerCase() === String(product.id).toLowerCase()) ||
+    (s.produk && String(s.produk).toLowerCase() === String(product.nama).toLowerCase())
   );
 }
 
@@ -232,19 +237,12 @@ function handleProductClick(id, event) {
   openDetailModal(id);
 }
 
-// ========================================================
-// 3. FUNGSI MODAL DETAIL POPUP (GAMBAR 2)
-// ========================================================
-
-// 4. MEMBUKA MODAL DETAIL POPUP
 function openDetailModal(productId) {
-  // PENGAMAN: Paksa ID menjadi String
   const product = allProducts.find(p => String(p.id) === String(productId));
   if (!product) return;
 
   currentDetailProduct = product;
 
-  // HItung JUMLAH AKTUAL di keranjang untuk ID ini
   const matchingItems = cart.filter(c => String(c.product.id) === String(productId));
   const totalExistingQty = matchingItems.reduce((sum, i) => sum + i.qty, 0);
   
@@ -256,7 +254,7 @@ function openDetailModal(productId) {
 
   const modalEl = document.getElementById("detailModal");
   if (!modalEl) {
-    alert("HTML Modal belum ada di kasir.html!");
+    alert("HTML Modal Detail belum ditambahkan ke kasir.html!");
     return;
   }
 
@@ -275,10 +273,31 @@ function openDetailModal(productId) {
   modalEl.style.display = "flex";
 }
 
+function closeDetailModal() {
+  const modalEl = document.getElementById("detailModal");
+  if (modalEl) modalEl.style.display = "none";
+  currentDetailProduct = null;
+}
 
-// ... (Fungsi closeDetailModal, adjustDetailModalQty, updateDetailModalButton TETAP SAMA) ...
+function adjustDetailModalQty(delta) {
+  currentDetailQty = Math.max(0, currentDetailQty + delta);
+  document.getElementById("detailModalQty").innerText = currentDetailQty;
+  updateDetailModalButton();
+}
 
-// 5. MENYIMPAN DARI MODAL DETAIL KE KERANJANG
+function updateDetailModalButton() {
+  const btnSave = document.querySelector("#detailModal .btn-confirm-pay");
+  if (btnSave) {
+    if (currentDetailQty === 0) {
+      btnSave.innerText = "HAPUS DARI KERANJANG";
+      btnSave.style.backgroundColor = "#d32f2f";
+    } else {
+      btnSave.innerText = "+ SIMPAN KE KERANJANG";
+      btnSave.style.backgroundColor = "#2e7d32";
+    }
+  }
+}
+
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
 
@@ -295,22 +314,18 @@ function saveDetailModalToCart() {
     const existingIndex = cart.findIndex(item => String(item.product.id) === productId);
     
     if (currentDetailQty <= 0) {
-      // Jika QTY = 0, hapus dari keranjang
       cart = cart.filter(item => String(item.product.id) !== productId);
     } else {
       if (existingIndex !== -1) {
-        // Update item yang sudah ada
         cart[existingIndex].qty = currentDetailQty;
         cart[existingIndex].itemNote = note;
         
-        // Pembersihan duplikat (jika sebelumnya ada error ganda)
         const duplicates = cart.filter((item, idx) => String(item.product.id) === productId && idx !== existingIndex);
         duplicates.forEach(dup => {
              const idx = cart.indexOf(dup);
              if(idx > -1) cart.splice(idx, 1);
         });
       } else {
-        // Jika belum ada, masukkan sebagai data baru
         cart.push({ 
           product: currentDetailProduct, 
           qty: currentDetailQty, 
@@ -319,24 +334,157 @@ function saveDetailModalToCart() {
         });
       }
     }
-    
     updateCartUI();
     filterProducts();
   }
 }
 
-// ---------------------------------------------------------
-// MODIFIKASI KERANJANG AGAR MENYIMPAN "CATATAN PER MENU"
-// ---------------------------------------------------------
+/* =========================================================
+   FUNGSI MODAL VARIASI & PAKET
+   ========================================================= */
+function openSubCategoryModal(product, subCategories) {
+  activeSubProduct = product;
+  selectedSubOptions = {};
 
-// 3. MENAMBAH ITEM KE KERANJANG
+  document.getElementById("subModalTitle").innerText = product.nama;
+  const modalBody = document.getElementById("subModalBody");
+
+  let html = '';
+  subCategories.forEach((group, index) => {
+    const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
+    let rawOptions = group.opsi || group.pilihan || "";
+    let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
+
+    const groupLower = groupName.toLowerCase();
+    const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
+                           groupLower.includes('paket') || groupLower.includes('pilih') || 
+                           group.tipe === 'counter';
+
+    if (optionsList.length > 0) {
+      if (isCounterGroup) {
+        selectedSubOptions[groupName] = {};
+        optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
+
+        html += `
+          <div class="option-group">
+            <div class="option-label">
+              <span>${groupName.toUpperCase()}</span>
+              <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
+            </div>
+            <div>
+              ${optionsList.map(opt => `
+                <div class="counter-item-row">
+                  <span class="counter-item-name">${opt}</span>
+                  <div class="counter-control">
+                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
+                    <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
+                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        selectedSubOptions[groupName] = optionsList[0];
+
+        html += `
+          <div class="option-group">
+            <div class="option-label">
+              <span>${groupName.toUpperCase()}</span>
+              <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
+            </div>
+            <div class="chips-container">
+              ${optionsList.map((opt, optIndex) => `
+                <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
+                        onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
+                  ${opt}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+  });
+
+  html += `
+    <div class="form-group" style="margin-top:15px;">
+      <label>JUMLAH PAKET / PORSI</label>
+      <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
+    </div>
+  `;
+
+  modalBody.innerHTML = html;
+  document.getElementById("subCategoryModal").style.display = "flex";
+}
+
+function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
+  if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
+  
+  let currentVal = selectedSubOptions[groupName][optionValue] || 0;
+  let newVal = Math.max(0, currentVal + delta);
+  selectedSubOptions[groupName][optionValue] = newVal;
+
+  const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
+  const el = document.getElementById(elementId);
+  if (el) el.innerText = newVal;
+
+  const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
+  const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
+  if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
+}
+
+function selectSingleSubOption(groupName, optionValue, btn) {
+  selectedSubOptions[groupName] = optionValue;
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function closeSubModal() {
+  document.getElementById("subCategoryModal").style.display = "none";
+  activeSubProduct = null;
+}
+
+function confirmSubCategorySelection() {
+  if (!activeSubProduct) return;
+  const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
+  
+  let formattedSelections = [];
+
+  Object.keys(selectedSubOptions).forEach(key => {
+    const val = selectedSubOptions[key];
+    if (typeof val === 'object' && val !== null) {
+      let itemsList = [];
+      Object.keys(val).forEach(itemKey => {
+        if (val[itemKey] > 0) {
+          itemsList.push(`${val[itemKey]} ${itemKey}`);
+        }
+      });
+      if (itemsList.length > 0) {
+        formattedSelections.push(itemsList.join(', '));
+      }
+    } else if (val) {
+      formattedSelections.push(val);
+    }
+  });
+
+  const subVariantText = formattedSelections.join(' | ');
+
+  addToCart(activeSubProduct, qty, subVariantText);
+  closeSubModal();
+}
+
+// ---------------------------------------------------------
+// KERANJANG & CHECKOUT
+// ---------------------------------------------------------
 function addToCart(product, qty, subVariant, itemNote = "") {
   if (window.tempItemNote) {
     itemNote = window.tempItemNote;
     window.tempItemNote = ""; 
   }
 
-  // PENGAMAN: Paksa ID menjadi String
   const existing = cart.find(item => 
     String(item.product.id) === String(product.id) && 
     item.subVariant === subVariant && 
@@ -352,14 +500,11 @@ function addToCart(product, qty, subVariant, itemNote = "") {
   filterProducts();
 }
 
-// 2. PROSES UPDATE QTY MENU BIASA
 function updateDirectQty(productId, newQty) {
-  // PENGAMAN: Paksa ID menjadi String
   const existingIndex = cart.findIndex(item => String(item.product.id) === String(productId));
   
   if (newQty <= 0) {
     if (existingIndex !== -1) {
-      // Bersihkan semua item yang ID-nya sama jika QTY diset 0
       cart = cart.filter(item => String(item.product.id) !== String(productId));
     }
   } else {
@@ -455,6 +600,9 @@ function renderModalCartList() {
   `).join('');
 }
 
+// ---------------------------------------------------------
+// PENGATURAN & PEMBAYARAN
+// ---------------------------------------------------------
 function openSettingsModal() {
   document.getElementById("settingShowImages").checked = posSettings.showImages;
   document.getElementById("settingPrintMode").value = posSettings.printMode;
@@ -517,7 +665,7 @@ async function processPayment() {
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
     if (i.subVariant) nameStr += ` (${i.subVariant})`;
-    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; // Tambahkan note ke struk
+    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; 
     return `${nameStr} (${i.qty}x)`;
   }).join(", ");
 
@@ -842,11 +990,15 @@ function cetakUlangStrukTerakhir() {
   }
 }
 
-// Handler event klik luar modal untuk menutup Modal Detail Produk
+// Handler event klik luar modal 
 window.addEventListener('click', function(event) {
   const detailModal = document.getElementById('detailModal');
+  const subModal = document.getElementById('subCategoryModal');
   if (event.target === detailModal) {
     closeDetailModal();
+  }
+  if (event.target === subModal) {
+    closeSubModal();
   }
 });
 

@@ -231,9 +231,15 @@ function handleProductClick(id, event) {
   openDetailModal(product);
 }
 
+// 1. FUNGSI MEMBUKA MODAL
 function openDetailModal(product) {
   currentDetailProduct = product;
-  currentDetailQty = 1;
+  
+  // PERBAIKAN: Cari dulu apakah produk ini sudah ada di keranjang
+  const existingItem = cart.find(item => item.product.id === product.id);
+  
+  // Jika sudah ada, gunakan qty dari keranjang. Jika belum, set 1.
+  currentDetailQty = existingItem ? existingItem.qty : 1;
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
@@ -242,29 +248,40 @@ function openDetailModal(product) {
   document.getElementById('detailModalTitle').innerText = product.nama;
   document.getElementById('detailModalImg').src = imgUrl;
 
-  // Mengakomodasi berbagai kemungkinan nama kolom Deskripsi/Keterangan di Google Sheet
   const desc = product.deskripsi || product.Deskripsi || product.keterangan || product.Keterangan || "";
   const descEl = document.getElementById('detailModalDesc');
   descEl.innerText = desc;
-  descEl.style.display = desc ? "block" : "none"; // Sembunyikan kalau kosong (jadi rapi)
+  descEl.style.display = desc ? "block" : "none"; 
 
   document.getElementById('detailModalPrice').innerText = 'Rp' + formatRupiah(product.harga);
-  document.getElementById('detailModalNote').value = "";
+  
+  // PERBAIKAN: Tampilkan juga catatan lama jika sudah pernah diisi
+  document.getElementById('detailModalNote').value = existingItem ? (existingItem.itemNote || "") : "";
+  
+  // PERBAIKAN: Tampilkan Qty yang sesuai dengan keranjang
   document.getElementById('detailModalQty').innerText = currentDetailQty;
 
   document.getElementById('detailModal').style.display = 'flex';
 }
+
+
+
 
 function closeDetailModal() {
   document.getElementById('detailModal').style.display = 'none';
   currentDetailProduct = null;
 }
 
+// 2. FUNGSI TOMBOL PLUS MINUS DI DALAM MODAL
 function adjustDetailModalQty(delta) {
-  currentDetailQty = Math.max(1, currentDetailQty + delta);
+  // PERBAIKAN: Batas minimal diubah jadi 0 (bukan 1), 
+  // agar user bisa klik minus sampai 0 untuk menghapus dari keranjang.
+  currentDetailQty = Math.max(0, currentDetailQty + delta);
   document.getElementById("detailModalQty").innerText = currentDetailQty;
 }
 
+
+// 3. FUNGSI SIMPAN KE KERANJANG
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
   
@@ -274,11 +291,34 @@ function saveDetailModalToCart() {
   closeDetailModal();
 
   if (subCategories.length > 0) {
-    // Note: Jika produk ber-variasi, note kita simpan ke variabel global sementara
     window.tempItemNote = itemNote; 
     openSubCategoryModal(currentDetailProduct, subCategories);
   } else {
-    addToCart(currentDetailProduct, currentDetailQty, "", itemNote);
+    // PERBAIKAN: Kita timpa (replace) datanya persis seperti di index.js
+    const existingIndex = cart.findIndex(item => item.product.id === currentDetailProduct.id);
+    
+    if (currentDetailQty <= 0) {
+      // Jika diset 0, hapus dari keranjang
+      if (existingIndex !== -1) cart.splice(existingIndex, 1);
+    } else {
+      if (existingIndex !== -1) {
+        // Update (timpa) Qty dan Catatan
+        cart[existingIndex].qty = currentDetailQty;
+        cart[existingIndex].itemNote = itemNote;
+      } else {
+        // Tambah item baru ke keranjang
+        cart.push({ 
+          product: currentDetailProduct, 
+          qty: currentDetailQty, 
+          subVariant: "", 
+          itemNote: itemNote 
+        });
+      }
+    }
+    
+    // Segarkan tampilan UI
+    updateCartUI();
+    filterProducts();
   }
 }
 

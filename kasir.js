@@ -99,8 +99,9 @@ function renderProducts(products) {
   }
   
   grid.innerHTML = products.map(p => {
+    // Hitung total qty produk ini di keranjang
     const totalQtyInCart = cart
-      .filter(c => String(c.product.id) === String(p.id))
+      .filter(c => c.product.id === p.id)
       .reduce((sum, i) => sum + i.qty, 0);
 
     const subCategories = getSubCategoriesForProduct(p);
@@ -168,13 +169,17 @@ function renderProducts(products) {
   }).join('');
 }
 
+// Fungsi baru untuk menangani klik tombol "Add"
 function handleAddClick(productId, event) {
+  // Cegah event klik merembet ke kartu menu (supaya popup modal tidak terbuka saat nge-klik tombol Add)
   if (event) event.stopPropagation(); 
-  const product = allProducts.find(p => String(p.id) === String(productId));
+  
+  const product = allProducts.find(p => p.id === productId);
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
   
+  // Jika menu punya variasi/paket, buka modal variasi. Jika tidak, langsung masuk keranjang 1 qty.
   if (subCategories.length > 0) {
     openSubCategoryModal(product, subCategories);
   } else {
@@ -182,9 +187,10 @@ function handleAddClick(productId, event) {
   }
 }
 
+
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
-  const product = allProducts.find(p => String(p.id) === String(productId));
+  const product = allProducts.find(p => p.id === productId);
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -193,36 +199,22 @@ function changeProductQtyInline(productId, delta, event) {
     if (delta > 0) {
       openSubCategoryModal(product, subCategories);
     } else {
-      const cartIdx = cart.map(i => String(i.product.id)).lastIndexOf(String(productId));
+      const cartIdx = cart.map(i => i.product.id).lastIndexOf(productId);
       if (cartIdx !== -1) {
         updateQtyInCartList(cartIdx, -1);
       }
     }
   } else {
-    const currentQty = cart.filter(c => String(c.product.id) === String(productId)).reduce((sum, i) => sum + i.qty, 0);
+    const currentQty = cart.filter(c => c.product.id === productId).reduce((sum, i) => sum + i.qty, 0);
     updateDirectQty(productId, currentQty + delta);
-  }
-}
-
-function onQtyDirectChange(productId, val) {
-  const product = allProducts.find(p => String(p.id) === String(productId));
-  if (!product) return;
-
-  const newQty = parseInt(val) || 0;
-  const subCategories = getSubCategoriesForProduct(product);
-
-  if (subCategories.length > 0) {
-    openSubCategoryModal(product, subCategories);
-  } else {
-    updateDirectQty(productId, newQty);
   }
 }
 
 function getSubCategoriesForProduct(product) {
   if (!allSubcategories || allSubcategories.length === 0) return [];
   return allSubcategories.filter(s => 
-    (s.id_produk && String(s.id_produk).toLowerCase() === String(product.id).toLowerCase()) ||
-    (s.produk && String(s.produk).toLowerCase() === String(product.nama).toLowerCase())
+    (s.id_produk && s.id_produk.toString().toLowerCase() === product.id.toString().toLowerCase()) ||
+    (s.produk && s.produk.toString().toLowerCase() === product.nama.toString().toLowerCase())
   );
 }
 
@@ -234,263 +226,75 @@ let currentDetailQty = 1;
 
 function handleProductClick(id, event) {
   if (event) event.stopPropagation();
-  openDetailModal(id);
+  const product = allProducts.find(p => p.id === id);
+  if (!product) return;
+  openDetailModal(product);
 }
 
-function openDetailModal(productId) {
-  const product = allProducts.find(p => String(p.id) === String(productId));
-  if (!product) return;
-
+function openDetailModal(product) {
   currentDetailProduct = product;
-
-  const matchingItems = cart.filter(c => String(c.product.id) === String(productId));
-  const totalExistingQty = matchingItems.reduce((sum, i) => sum + i.qty, 0);
-  
-  currentDetailQty = totalExistingQty > 0 ? totalExistingQty : 1;
-  const existingNote = matchingItems.length > 0 ? (matchingItems[0].itemNote || "") : ""; 
+  currentDetailQty = 1;
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
-
-  const modalEl = document.getElementById("detailModal");
-  if (!modalEl) {
-    alert("HTML Modal Detail belum ditambahkan ke kasir.html!");
-    return;
-  }
-
-  document.getElementById("detailModalHeaderTitle").innerText = product.nama;
-  document.getElementById("detailModalTitle").innerText = product.nama;
-  document.getElementById("detailModalImg").src = imgUrl;
   
-  let desc = product.deskripsi || product.Deskripsi || product.keterangan || "";
-  document.getElementById("detailModalDesc").innerText = desc || "-";
-  document.getElementById("detailModalPrice").innerText = `Rp${formatRupiah(product.harga)}`;
-  
-  document.getElementById("detailModalNote").value = existingNote;
-  document.getElementById("detailModalQty").innerText = currentDetailQty;
+  document.getElementById('detailModalHeaderTitle').innerText = product.nama;
+  document.getElementById('detailModalTitle').innerText = product.nama;
+  document.getElementById('detailModalImg').src = imgUrl;
 
-  updateDetailModalButton();
-  modalEl.style.display = "flex";
+  // Mengakomodasi berbagai kemungkinan nama kolom Deskripsi/Keterangan di Google Sheet
+  const desc = product.deskripsi || product.Deskripsi || product.keterangan || product.Keterangan || "";
+  const descEl = document.getElementById('detailModalDesc');
+  descEl.innerText = desc;
+  descEl.style.display = desc ? "block" : "none"; // Sembunyikan kalau kosong (jadi rapi)
+
+  document.getElementById('detailModalPrice').innerText = 'Rp' + formatRupiah(product.harga);
+  document.getElementById('detailModalNote').value = "";
+  document.getElementById('detailModalQty').innerText = currentDetailQty;
+
+  document.getElementById('detailModal').style.display = 'flex';
 }
 
 function closeDetailModal() {
-  const modalEl = document.getElementById("detailModal");
-  if (modalEl) modalEl.style.display = "none";
+  document.getElementById('detailModal').style.display = 'none';
   currentDetailProduct = null;
 }
 
 function adjustDetailModalQty(delta) {
-  currentDetailQty = Math.max(0, currentDetailQty + delta);
+  currentDetailQty = Math.max(1, currentDetailQty + delta);
   document.getElementById("detailModalQty").innerText = currentDetailQty;
-  updateDetailModalButton();
-}
-
-function updateDetailModalButton() {
-  const btnSave = document.querySelector("#detailModal .btn-confirm-pay");
-  if (btnSave) {
-    if (currentDetailQty === 0) {
-      btnSave.innerText = "HAPUS DARI KERANJANG";
-      btnSave.style.backgroundColor = "#d32f2f";
-    } else {
-      btnSave.innerText = "+ SIMPAN KE KERANJANG";
-      btnSave.style.backgroundColor = "#2e7d32";
-    }
-  }
 }
 
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
-
+  
   const subCategories = getSubCategoriesForProduct(currentDetailProduct);
-  const note = document.getElementById("detailModalNote").value.trim();
+  const itemNote = document.getElementById("detailModalNote").value.trim();
 
   closeDetailModal();
 
   if (subCategories.length > 0) {
-    window.tempItemNote = note; 
+    // Note: Jika produk ber-variasi, note kita simpan ke variabel global sementara
+    window.tempItemNote = itemNote; 
     openSubCategoryModal(currentDetailProduct, subCategories);
   } else {
-    const productId = String(currentDetailProduct.id);
-    const existingIndex = cart.findIndex(item => String(item.product.id) === productId);
-    
-    if (currentDetailQty <= 0) {
-      cart = cart.filter(item => String(item.product.id) !== productId);
-    } else {
-      if (existingIndex !== -1) {
-        cart[existingIndex].qty = currentDetailQty;
-        cart[existingIndex].itemNote = note;
-        
-        const duplicates = cart.filter((item, idx) => String(item.product.id) === productId && idx !== existingIndex);
-        duplicates.forEach(dup => {
-             const idx = cart.indexOf(dup);
-             if(idx > -1) cart.splice(idx, 1);
-        });
-      } else {
-        cart.push({ 
-          product: currentDetailProduct, 
-          qty: currentDetailQty, 
-          subVariant: "", 
-          itemNote: note 
-        });
-      }
-    }
-    updateCartUI();
-    filterProducts();
+    addToCart(currentDetailProduct, currentDetailQty, "", itemNote);
   }
 }
 
-/* =========================================================
-   FUNGSI MODAL VARIASI & PAKET
-   ========================================================= */
-function openSubCategoryModal(product, subCategories) {
-  activeSubProduct = product;
-  selectedSubOptions = {};
-
-  document.getElementById("subModalTitle").innerText = product.nama;
-  const modalBody = document.getElementById("subModalBody");
-
-  let html = '';
-  subCategories.forEach((group, index) => {
-    const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
-    let rawOptions = group.opsi || group.pilihan || "";
-    let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
-
-    const groupLower = groupName.toLowerCase();
-    const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
-                           groupLower.includes('paket') || groupLower.includes('pilih') || 
-                           group.tipe === 'counter';
-
-    if (optionsList.length > 0) {
-      if (isCounterGroup) {
-        selectedSubOptions[groupName] = {};
-        optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
-
-        html += `
-          <div class="option-group">
-            <div class="option-label">
-              <span>${groupName.toUpperCase()}</span>
-              <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
-            </div>
-            <div>
-              ${optionsList.map(opt => `
-                <div class="counter-item-row">
-                  <span class="counter-item-name">${opt}</span>
-                  <div class="counter-control">
-                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
-                    <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
-                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      } else {
-        selectedSubOptions[groupName] = optionsList[0];
-
-        html += `
-          <div class="option-group">
-            <div class="option-label">
-              <span>${groupName.toUpperCase()}</span>
-              <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
-            </div>
-            <div class="chips-container">
-              ${optionsList.map((opt, optIndex) => `
-                <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
-                        onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
-                  ${opt}
-                </button>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-    }
-  });
-
-  html += `
-    <div class="form-group" style="margin-top:15px;">
-      <label>JUMLAH PAKET / PORSI</label>
-      <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
-    </div>
-  `;
-
-  modalBody.innerHTML = html;
-  document.getElementById("subCategoryModal").style.display = "flex";
-}
-
-function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
-  if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
-  
-  let currentVal = selectedSubOptions[groupName][optionValue] || 0;
-  let newVal = Math.max(0, currentVal + delta);
-  selectedSubOptions[groupName][optionValue] = newVal;
-
-  const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
-  const el = document.getElementById(elementId);
-  if (el) el.innerText = newVal;
-
-  const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
-  const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
-  if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
-}
-
-function selectSingleSubOption(groupName, optionValue, btn) {
-  selectedSubOptions[groupName] = optionValue;
-  const parent = btn.parentElement;
-  parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-}
-
-function closeSubModal() {
-  document.getElementById("subCategoryModal").style.display = "none";
-  activeSubProduct = null;
-}
-
-function confirmSubCategorySelection() {
-  if (!activeSubProduct) return;
-  const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
-  
-  let formattedSelections = [];
-
-  Object.keys(selectedSubOptions).forEach(key => {
-    const val = selectedSubOptions[key];
-    if (typeof val === 'object' && val !== null) {
-      let itemsList = [];
-      Object.keys(val).forEach(itemKey => {
-        if (val[itemKey] > 0) {
-          itemsList.push(`${val[itemKey]} ${itemKey}`);
-        }
-      });
-      if (itemsList.length > 0) {
-        formattedSelections.push(itemsList.join(', '));
-      }
-    } else if (val) {
-      formattedSelections.push(val);
-    }
-  });
-
-  const subVariantText = formattedSelections.join(' | ');
-
-  addToCart(activeSubProduct, qty, subVariantText);
-  closeSubModal();
-}
-
 // ---------------------------------------------------------
-// KERANJANG & CHECKOUT
+// MODIFIKASI KERANJANG AGAR MENYIMPAN "CATATAN PER MENU"
 // ---------------------------------------------------------
+
+// Modifikasi addToCart agar menerima itemNote
 function addToCart(product, qty, subVariant, itemNote = "") {
+  // Jika ini berasal dari pilihan variasi, ambil note sementaranya
   if (window.tempItemNote) {
     itemNote = window.tempItemNote;
-    window.tempItemNote = ""; 
+    window.tempItemNote = ""; // reset
   }
 
-  const existing = cart.find(item => 
-    String(item.product.id) === String(product.id) && 
-    item.subVariant === subVariant && 
-    item.itemNote === itemNote
-  );
-  
+  const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant && item.itemNote === itemNote);
   if (existing) {
     existing.qty += qty;
   } else {
@@ -501,17 +305,14 @@ function addToCart(product, qty, subVariant, itemNote = "") {
 }
 
 function updateDirectQty(productId, newQty) {
-  const existingIndex = cart.findIndex(item => String(item.product.id) === String(productId));
-  
+  const existingIndex = cart.findIndex(item => item.product.id === productId);
   if (newQty <= 0) {
-    if (existingIndex !== -1) {
-      cart = cart.filter(item => String(item.product.id) !== String(productId));
-    }
+    if (existingIndex !== -1) cart.splice(existingIndex, 1);
   } else {
     if (existingIndex !== -1) {
       cart[existingIndex].qty = newQty;
     } else {
-      const product = allProducts.find(p => String(p.id) === String(productId));
+      const product = allProducts.find(p => p.id === productId);
       if (product) cart.push({ product: product, qty: newQty, subVariant: "", itemNote: "" });
     }
   }
@@ -600,9 +401,6 @@ function renderModalCartList() {
   `).join('');
 }
 
-// ---------------------------------------------------------
-// PENGATURAN & PEMBAYARAN
-// ---------------------------------------------------------
 function openSettingsModal() {
   document.getElementById("settingShowImages").checked = posSettings.showImages;
   document.getElementById("settingPrintMode").value = posSettings.printMode;
@@ -665,7 +463,7 @@ async function processPayment() {
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
     if (i.subVariant) nameStr += ` (${i.subVariant})`;
-    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; 
+    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; // Tambahkan note ke struk
     return `${nameStr} (${i.qty}x)`;
   }).join(", ");
 
@@ -990,15 +788,11 @@ function cetakUlangStrukTerakhir() {
   }
 }
 
-// Handler event klik luar modal 
+// Handler event klik luar modal untuk menutup Modal Detail Produk
 window.addEventListener('click', function(event) {
   const detailModal = document.getElementById('detailModal');
-  const subModal = document.getElementById('subCategoryModal');
   if (event.target === detailModal) {
     closeDetailModal();
-  }
-  if (event.target === subModal) {
-    closeSubModal();
   }
 });
 

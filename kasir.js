@@ -210,6 +210,25 @@ function changeProductQtyInline(productId, delta, event) {
   }
 }
 
+// FUNGSI INPUT MANUAL QTY DI KARTU LUAR
+function onQtyDirectChange(productId, val) {
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  let newQty = parseInt(val) || 0;
+  if (newQty < 0) newQty = 0;
+
+  const subCategories = getSubCategoriesForProduct(product);
+
+  if (subCategories.length > 0) {
+    // Jika ada variasi/paket, tetap lemparkan ke modal
+    openSubCategoryModal(product, subCategories);
+  } else {
+    // Update angkanya secara langsung
+    updateDirectQty(productId, newQty);
+  }
+}
+
 function getSubCategoriesForProduct(product) {
   if (!allSubcategories || allSubcategories.length === 0) return [];
   return allSubcategories.filter(s => 
@@ -232,10 +251,10 @@ function handleProductClick(id, event) {
 }
 
 // 1. FUNGSI MEMBUKA MODAL
+// 1. UPDATE FUNGSI MEMBUKA MODAL
 function openDetailModal(product) {
   currentDetailProduct = product;
   
-  // Ngecek ke keranjang dulu
   const existingItem = cart.find(item => item.product.id === product.id);
   currentDetailQty = existingItem ? existingItem.qty : 1;
 
@@ -252,15 +271,13 @@ function openDetailModal(product) {
   descEl.style.display = desc ? "block" : "none"; 
 
   document.getElementById('detailModalPrice').innerText = 'Rp' + formatRupiah(product.harga);
-  
-  // Tampilkan riwayat catatan dan angka
   document.getElementById('detailModalNote').value = existingItem ? (existingItem.itemNote || "") : "";
-  document.getElementById('detailModalQty').innerText = currentDetailQty;
+  
+  // PERBAIKAN: Gunakan .value karena sekarang merupakan isian <input>
+  document.getElementById('detailModalQty').value = currentDetailQty;
 
   document.getElementById('detailModal').style.display = 'flex';
 }
-
-
 
 
 function closeDetailModal() {
@@ -268,10 +285,19 @@ function closeDetailModal() {
   currentDetailProduct = null;
 }
 
-// 2. FUNGSI TOMBOL PLUS MINUS DI MODAL
+// 2. UPDATE FUNGSI TOMBOL PLUS MINUS
 function adjustDetailModalQty(delta) {
   currentDetailQty = Math.max(0, currentDetailQty + delta);
-  document.getElementById("detailModalQty").innerText = currentDetailQty;
+  // PERBAIKAN: Gunakan .value
+  document.getElementById("detailModalQty").value = currentDetailQty;
+}
+
+// 3. FUNGSI BARU UNTUK MENANGKAP KETIKAN MANUAL MODAL
+function handleModalQtyManualChange(val) {
+  let newQty = parseInt(val) || 0;
+  if (newQty < 0) newQty = 0;
+  currentDetailQty = newQty;
+  document.getElementById("detailModalQty").value = currentDetailQty;
 }
 
 

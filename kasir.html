@@ -224,7 +224,7 @@
 
         <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px;">
           <button type="button" style="width:38px; height:38px; border-radius:50%; border:1px solid #ced4da; background:#fff; font-size:20px; font-weight:bold; cursor:pointer; color:#333;" onclick="adjustDetailModalQty(-1)">-</button>
-          <div id="detailModalQty" style="font-size: 18px; font-weight: 800; min-width: 45px; border:1px solid #ced4da; border-radius:8px; padding:6px 0; color:#333;">1</div>
+         <input type="number" id="detailModalQty" value="1" min="0" onchange="handleModalQtyManualChange(this.value)" onfocus="this.select()" style="font-size: 18px; font-weight: 800; width: 60px; text-align: center; border:1px solid #ced4da; border-radius:8px; padding:6px 0; color:#333; outline: none; background: transparent;">
           <button type="button" style="width:38px; height:38px; border-radius:50%; border:1px solid #ced4da; background:#fff; font-size:20px; font-weight:bold; cursor:pointer; color:#333;" onclick="adjustDetailModalQty(1)">+</button>
         </div>
       </div>

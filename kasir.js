@@ -188,9 +188,11 @@ function handleAddClick(productId, event) {
 }
 
 
+// 1. UPDATE QTY MENU DARI LUAR (TOMBOL - / + DI KARTU)
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
-  const product = allProducts.find(p => p.id === productId);
+  // PENGAMAN: Paksa ID menjadi String
+  const product = allProducts.find(p => String(p.id) === String(productId));
   if (!product) return;
 
   const subCategories = getSubCategoriesForProduct(product);
@@ -199,13 +201,14 @@ function changeProductQtyInline(productId, delta, event) {
     if (delta > 0) {
       openSubCategoryModal(product, subCategories);
     } else {
-      const cartIdx = cart.map(i => i.product.id).lastIndexOf(productId);
+      const cartIdx = cart.map(i => String(i.product.id)).lastIndexOf(String(productId));
       if (cartIdx !== -1) {
         updateQtyInCartList(cartIdx, -1);
       }
     }
   } else {
-    const currentQty = cart.filter(c => c.product.id === productId).reduce((sum, i) => sum + i.qty, 0);
+    // PENGAMAN: Paksa ID menjadi String saat menghitung jumlah
+    const currentQty = cart.filter(c => String(c.product.id) === String(productId)).reduce((sum, i) => sum + i.qty, 0);
     updateDirectQty(productId, currentQty + delta);
   }
 }
@@ -233,29 +236,27 @@ function handleProductClick(id, event) {
 // 3. FUNGSI MODAL DETAIL POPUP (GAMBAR 2)
 // ========================================================
 
+// 4. MEMBUKA MODAL DETAIL POPUP
 function openDetailModal(productId) {
-  // FIX 1: Gunakan String() untuk mencocokkan ID agar kebal bentrok Angka vs Teks
+  // PENGAMAN: Paksa ID menjadi String
   const product = allProducts.find(p => String(p.id) === String(productId));
-  
-  if (!product) {
-    console.error("Produk tidak ditemukan:", productId);
-    return;
-  }
+  if (!product) return;
 
   currentDetailProduct = product;
 
-  // Cek Keranjang
-  const existingItem = cart.find(c => String(c.product.id) === String(productId));
-  currentDetailQty = existingItem ? existingItem.qty : 1;
-  const existingNote = existingItem ? (existingItem.itemNote || "") : "";
+  // HItung JUMLAH AKTUAL di keranjang untuk ID ini
+  const matchingItems = cart.filter(c => String(c.product.id) === String(productId));
+  const totalExistingQty = matchingItems.reduce((sum, i) => sum + i.qty, 0);
+  
+  currentDetailQty = totalExistingQty > 0 ? totalExistingQty : 1;
+  const existingNote = matchingItems.length > 0 ? (matchingItems[0].itemNote || "") : ""; 
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
 
-  // FIX 2: Pengecekan HTML. Jika HTML belum dipasang, akan muncul peringatan.
   const modalEl = document.getElementById("detailModal");
   if (!modalEl) {
-    alert("ERROR: HTML Modal Detail belum ditambahkan ke kasir.html!");
+    alert("HTML Modal belum ada di kasir.html!");
     return;
   }
 
@@ -265,7 +266,6 @@ function openDetailModal(productId) {
   
   let desc = product.deskripsi || product.Deskripsi || product.keterangan || "";
   document.getElementById("detailModalDesc").innerText = desc || "-";
-  
   document.getElementById("detailModalPrice").innerText = `Rp${formatRupiah(product.harga)}`;
   
   document.getElementById("detailModalNote").value = existingNote;
@@ -275,8 +275,10 @@ function openDetailModal(productId) {
   modalEl.style.display = "flex";
 }
 
+
 // ... (Fungsi closeDetailModal, adjustDetailModalQty, updateDetailModalButton TETAP SAMA) ...
 
+// 5. MENYIMPAN DARI MODAL DETAIL KE KERANJANG
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
 
@@ -286,21 +288,29 @@ function saveDetailModalToCart() {
   closeDetailModal();
 
   if (subCategories.length > 0) {
-    // FIX: Simpan note ke memori sementara sebelum buka modal variasi
     window.tempItemNote = note; 
     openSubCategoryModal(currentDetailProduct, subCategories);
   } else {
-    // JIKA MENU BIASA: Update keranjang
-    const existingIndex = cart.findIndex(item => item.product.id === currentDetailProduct.id);
+    const productId = String(currentDetailProduct.id);
+    const existingIndex = cart.findIndex(item => String(item.product.id) === productId);
     
     if (currentDetailQty <= 0) {
-      if (existingIndex !== -1) cart.splice(existingIndex, 1);
+      // Jika QTY = 0, hapus dari keranjang
+      cart = cart.filter(item => String(item.product.id) !== productId);
     } else {
       if (existingIndex !== -1) {
-        // FIX: Update Qty dan Catatan ke parameter itemNote
+        // Update item yang sudah ada
         cart[existingIndex].qty = currentDetailQty;
         cart[existingIndex].itemNote = note;
+        
+        // Pembersihan duplikat (jika sebelumnya ada error ganda)
+        const duplicates = cart.filter((item, idx) => String(item.product.id) === productId && idx !== existingIndex);
+        duplicates.forEach(dup => {
+             const idx = cart.indexOf(dup);
+             if(idx > -1) cart.splice(idx, 1);
+        });
       } else {
+        // Jika belum ada, masukkan sebagai data baru
         cart.push({ 
           product: currentDetailProduct, 
           qty: currentDetailQty, 
@@ -319,15 +329,20 @@ function saveDetailModalToCart() {
 // MODIFIKASI KERANJANG AGAR MENYIMPAN "CATATAN PER MENU"
 // ---------------------------------------------------------
 
-// Modifikasi addToCart agar menerima itemNote
+// 3. MENAMBAH ITEM KE KERANJANG
 function addToCart(product, qty, subVariant, itemNote = "") {
-  // Jika ini berasal dari pilihan variasi, ambil note sementaranya
   if (window.tempItemNote) {
     itemNote = window.tempItemNote;
-    window.tempItemNote = ""; // reset
+    window.tempItemNote = ""; 
   }
 
-  const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant && item.itemNote === itemNote);
+  // PENGAMAN: Paksa ID menjadi String
+  const existing = cart.find(item => 
+    String(item.product.id) === String(product.id) && 
+    item.subVariant === subVariant && 
+    item.itemNote === itemNote
+  );
+  
   if (existing) {
     existing.qty += qty;
   } else {
@@ -337,15 +352,21 @@ function addToCart(product, qty, subVariant, itemNote = "") {
   filterProducts();
 }
 
+// 2. PROSES UPDATE QTY MENU BIASA
 function updateDirectQty(productId, newQty) {
-  const existingIndex = cart.findIndex(item => item.product.id === productId);
+  // PENGAMAN: Paksa ID menjadi String
+  const existingIndex = cart.findIndex(item => String(item.product.id) === String(productId));
+  
   if (newQty <= 0) {
-    if (existingIndex !== -1) cart.splice(existingIndex, 1);
+    if (existingIndex !== -1) {
+      // Bersihkan semua item yang ID-nya sama jika QTY diset 0
+      cart = cart.filter(item => String(item.product.id) !== String(productId));
+    }
   } else {
     if (existingIndex !== -1) {
       cart[existingIndex].qty = newQty;
     } else {
-      const product = allProducts.find(p => p.id === productId);
+      const product = allProducts.find(p => String(p.id) === String(productId));
       if (product) cart.push({ product: product, qty: newQty, subVariant: "", itemNote: "" });
     }
   }

@@ -100,9 +100,9 @@ function renderProducts(products) {
   
   grid.innerHTML = products.map(p => {
     // Hitung total qty produk ini di keranjang
-    const totalQtyInCart = cart
-      .filter(c => c.product.id === p.id)
-      .reduce((sum, i) => sum + i.qty, 0);
+  const totalQtyInCart = cart
+    .filter(c => String(c.product.id) === String(p.id)) // <-- Pastikan ada String() nya
+    .reduce((sum, i) => sum + i.qty, 0);
 
     const subCategories = getSubCategoriesForProduct(p);
     const hasSub = subCategories.length > 0;

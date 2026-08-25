@@ -226,92 +226,59 @@ let currentDetailQty = 1;
 
 function handleProductClick(id, event) {
   if (event) event.stopPropagation();
-  openDetailModal(id);
+  const product = allProducts.find(p => p.id === id);
+  if (!product) return;
+  openDetailModal(product);
 }
 
-// ========================================================
-// 3. FUNGSI MODAL DETAIL POPUP (GAMBAR 2)
-// ========================================================
-
-function openDetailModal(productId) {
-  // FIX 1: Gunakan String() untuk mencocokkan ID agar kebal bentrok Angka vs Teks
-  const product = allProducts.find(p => String(p.id) === String(productId));
-  
-  if (!product) {
-    console.error("Produk tidak ditemukan:", productId);
-    return;
-  }
-
+function openDetailModal(product) {
   currentDetailProduct = product;
-
-  // Cek Keranjang
-  const existingItem = cart.find(c => String(c.product.id) === String(productId));
-  currentDetailQty = existingItem ? existingItem.qty : 1;
-  const existingNote = existingItem ? (existingItem.itemNote || "") : "";
+  currentDetailQty = 1;
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
-
-  // FIX 2: Pengecekan HTML. Jika HTML belum dipasang, akan muncul peringatan.
-  const modalEl = document.getElementById("detailModal");
-  if (!modalEl) {
-    alert("ERROR: HTML Modal Detail belum ditambahkan ke kasir.html!");
-    return;
-  }
-
-  document.getElementById("detailModalHeaderTitle").innerText = product.nama;
-  document.getElementById("detailModalTitle").innerText = product.nama;
-  document.getElementById("detailModalImg").src = imgUrl;
   
-  let desc = product.deskripsi || product.Deskripsi || product.keterangan || "";
-  document.getElementById("detailModalDesc").innerText = desc || "-";
-  
-  document.getElementById("detailModalPrice").innerText = `Rp${formatRupiah(product.harga)}`;
-  
-  document.getElementById("detailModalNote").value = existingNote;
-  document.getElementById("detailModalQty").innerText = currentDetailQty;
+  document.getElementById('detailModalHeaderTitle').innerText = product.nama;
+  document.getElementById('detailModalTitle').innerText = product.nama;
+  document.getElementById('detailModalImg').src = imgUrl;
 
-  updateDetailModalButton();
-  modalEl.style.display = "flex";
+  // Mengakomodasi berbagai kemungkinan nama kolom Deskripsi/Keterangan di Google Sheet
+  const desc = product.deskripsi || product.Deskripsi || product.keterangan || product.Keterangan || "";
+  const descEl = document.getElementById('detailModalDesc');
+  descEl.innerText = desc;
+  descEl.style.display = desc ? "block" : "none"; // Sembunyikan kalau kosong (jadi rapi)
+
+  document.getElementById('detailModalPrice').innerText = 'Rp' + formatRupiah(product.harga);
+  document.getElementById('detailModalNote').value = "";
+  document.getElementById('detailModalQty').innerText = currentDetailQty;
+
+  document.getElementById('detailModal').style.display = 'flex';
 }
 
-// ... (Fungsi closeDetailModal, adjustDetailModalQty, updateDetailModalButton TETAP SAMA) ...
+function closeDetailModal() {
+  document.getElementById('detailModal').style.display = 'none';
+  currentDetailProduct = null;
+}
+
+function adjustDetailModalQty(delta) {
+  currentDetailQty = Math.max(1, currentDetailQty + delta);
+  document.getElementById("detailModalQty").innerText = currentDetailQty;
+}
 
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
-
+  
   const subCategories = getSubCategoriesForProduct(currentDetailProduct);
-  const note = document.getElementById("detailModalNote").value.trim();
+  const itemNote = document.getElementById("detailModalNote").value.trim();
 
   closeDetailModal();
 
   if (subCategories.length > 0) {
-    // FIX: Simpan note ke memori sementara sebelum buka modal variasi
-    window.tempItemNote = note; 
+    // Note: Jika produk ber-variasi, note kita simpan ke variabel global sementara
+    window.tempItemNote = itemNote; 
     openSubCategoryModal(currentDetailProduct, subCategories);
   } else {
-    // JIKA MENU BIASA: Update keranjang
-    const existingIndex = cart.findIndex(item => item.product.id === currentDetailProduct.id);
-    
-    if (currentDetailQty <= 0) {
-      if (existingIndex !== -1) cart.splice(existingIndex, 1);
-    } else {
-      if (existingIndex !== -1) {
-        // FIX: Update Qty dan Catatan ke parameter itemNote
-        cart[existingIndex].qty = currentDetailQty;
-        cart[existingIndex].itemNote = note;
-      } else {
-        cart.push({ 
-          product: currentDetailProduct, 
-          qty: currentDetailQty, 
-          subVariant: "", 
-          itemNote: note 
-        });
-      }
-    }
-    
-    updateCartUI();
-    filterProducts();
+    addToCart(currentDetailProduct, currentDetailQty, "", itemNote);
   }
 }
 

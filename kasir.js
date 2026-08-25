@@ -219,225 +219,86 @@ function getSubCategoriesForProduct(product) {
 }
 
 /* =========================================================
-   TAHAP 1: MODAL DETAIL PRODUK (INFOKAN & PILIH VARIASI/TAMBAH)
+   TAHAP 1: MODAL DETAIL PRODUK (DESAIN KATALOG)
    ========================================================= */
+let currentDetailProduct = null;
+let currentDetailQty = 1;
+
 function handleProductClick(id, event) {
+  if (event) event.stopPropagation();
   const product = allProducts.find(p => p.id === id);
   if (!product) return;
-  bukaModalDetail(product);
+  openDetailModal(product);
 }
 
-function bukaModalDetail(produk) {
-  const rawImgUrl = produk['Link Gambar'] || produk.linkGambar || produk.gambar || produk[10];
+function openDetailModal(product) {
+  currentDetailProduct = product;
+  currentDetailQty = 1;
+
+  const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
   
-  const modalImg = document.getElementById('modalGambar');
-  if (modalImg) modalImg.src = imgUrl;
+  document.getElementById('detailModalHeaderTitle').innerText = product.nama;
+  document.getElementById('detailModalTitle').innerText = product.nama;
+  document.getElementById('detailModalImg').src = imgUrl;
 
-  const modalNama = document.getElementById('modalNama');
-  if (modalNama) modalNama.innerText = produk.nama;
+  // Mengakomodasi berbagai kemungkinan nama kolom Deskripsi/Keterangan di Google Sheet
+  const desc = product.deskripsi || product.Deskripsi || product.keterangan || product.Keterangan || "";
+  const descEl = document.getElementById('detailModalDesc');
+  descEl.innerText = desc;
+  descEl.style.display = desc ? "block" : "none"; // Sembunyikan kalau kosong (jadi rapi)
 
-  const modalDesc = document.getElementById('modalDeskripsi');
-  if (modalDesc) modalDesc.innerText = produk.deskripsi || produk.Deskripsi || 'Tidak ada deskripsi.';
+  document.getElementById('detailModalPrice').innerText = 'Rp' + formatRupiah(product.harga);
+  document.getElementById('detailModalNote').value = "";
+  document.getElementById('detailModalQty').innerText = currentDetailQty;
 
-  const modalHarga = document.getElementById('modalHarga');
-  if (modalHarga) modalHarga.innerText = 'Rp ' + formatRupiah(produk.harga);
+  document.getElementById('detailModal').style.display = 'flex';
+}
 
-  const subCategories = getSubCategoriesForProduct(produk);
-  const containerAksi = document.getElementById('modalAksi');
+function closeDetailModal() {
+  document.getElementById('detailModal').style.display = 'none';
+  currentDetailProduct = null;
+}
+
+function adjustDetailModalQty(delta) {
+  currentDetailQty = Math.max(1, currentDetailQty + delta);
+  document.getElementById("detailModalQty").innerText = currentDetailQty;
+}
+
+function saveDetailModalToCart() {
+  if (!currentDetailProduct) return;
   
-  if (containerAksi) {
-    if (subCategories.length > 0) {
-      containerAksi.innerHTML = `
-        <button class="btn-tambah" style="width:100%; padding:10px; background:#2e7d32; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="eksekusiDariModal('${produk.id}', true)">
-          + Pilih Variasi / Paket
-        </button>
-      `;
-    } else {
-      containerAksi.innerHTML = `
-        <button class="btn-tambah" style="width:100%; padding:10px; background:#2e7d32; color:#fff; border:none; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="eksekusiDariModal('${produk.id}', false)">
-          + Masukkan Keranjang
-        </button>
-      `;
-    }
-  }
+  const subCategories = getSubCategoriesForProduct(currentDetailProduct);
+  const itemNote = document.getElementById("detailModalNote").value.trim();
 
-  const modalDetail = document.getElementById('modalDetail');
-  if (modalDetail) modalDetail.style.display = 'flex';
-}
-
-function eksekusiDariModal(productId, hasSub) {
-  tutupModalDetail();
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
-
-  if (hasSub) {
-    const subCategories = getSubCategoriesForProduct(product);
-    openSubCategoryModal(product, subCategories);
-  } else {
-    addToCart(product, 1, "");
-  }
-}
-
-function tutupModalDetail() {
-  const modalDetail = document.getElementById('modalDetail');
-  if (modalDetail) modalDetail.style.display = 'none';
-}
-
-function onQtyDirectChange(productId, val) {
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
-
-  const newQty = parseInt(val) || 0;
-  const subCategories = getSubCategoriesForProduct(product);
+  closeDetailModal();
 
   if (subCategories.length > 0) {
-    openSubCategoryModal(product, subCategories);
+    // Note: Jika produk ber-variasi, note kita simpan ke variabel global sementara
+    window.tempItemNote = itemNote; 
+    openSubCategoryModal(currentDetailProduct, subCategories);
   } else {
-    updateDirectQty(productId, newQty);
+    addToCart(currentDetailProduct, currentDetailQty, "", itemNote);
   }
 }
 
-function openSubCategoryModal(product, subCategories) {
-  activeSubProduct = product;
-  selectedSubOptions = {};
+// ---------------------------------------------------------
+// MODIFIKASI KERANJANG AGAR MENYIMPAN "CATATAN PER MENU"
+// ---------------------------------------------------------
 
-  document.getElementById("subModalTitle").innerText = product.nama;
-  const modalBody = document.getElementById("subModalBody");
+// Modifikasi addToCart agar menerima itemNote
+function addToCart(product, qty, subVariant, itemNote = "") {
+  // Jika ini berasal dari pilihan variasi, ambil note sementaranya
+  if (window.tempItemNote) {
+    itemNote = window.tempItemNote;
+    window.tempItemNote = ""; // reset
+  }
 
-  let html = '';
-  subCategories.forEach((group, index) => {
-    const groupName = group.nama_kategori || group.kategori_opsi || `Pilihan ${index + 1}`;
-    let rawOptions = group.opsi || group.pilihan || "";
-    let optionsList = Array.isArray(rawOptions) ? rawOptions : rawOptions.split(',').map(o => o.trim()).filter(Boolean);
-
-    const groupLower = groupName.toLowerCase();
-    const isCounterGroup = groupLower.includes('isi') || groupLower.includes('varian') || 
-                           groupLower.includes('paket') || groupLower.includes('pilih') || 
-                           group.tipe === 'counter';
-
-    if (optionsList.length > 0) {
-      if (isCounterGroup) {
-        selectedSubOptions[groupName] = {};
-        optionsList.forEach(opt => { selectedSubOptions[groupName][opt] = 0; });
-
-        html += `
-          <div class="option-group">
-            <div class="option-label">
-              <span>${groupName.toUpperCase()}</span>
-              <span style="font-size: 11px; color: #2e7d32; font-weight: 800;" id="totalCounterTag_${index}">Total: 0 Item</span>
-            </div>
-            <div>
-              ${optionsList.map(opt => `
-                <div class="counter-item-row">
-                  <span class="counter-item-name">${opt}</span>
-                  <div class="counter-control">
-                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', -1, ${index})">-</button>
-                    <span class="counter-val" id="cnt_${index}_${opt.replace(/\s+/g, '_')}">0</span>
-                    <button type="button" class="btn-counter-mini" onclick="adjustSubCounter('${groupName}', '${opt}', 1, ${index})">+</button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      } else {
-        selectedSubOptions[groupName] = optionsList[0];
-
-        html += `
-          <div class="option-group">
-            <div class="option-label">
-              <span>${groupName.toUpperCase()}</span>
-              <span style="font-size: 10px; font-weight: normal; color: #6c757d;">(Pilih 1)</span>
-            </div>
-            <div class="chips-container">
-              ${optionsList.map((opt, optIndex) => `
-                <button type="button" class="chip-option ${optIndex === 0 ? 'selected' : ''}" 
-                        onclick="selectSingleSubOption('${groupName}', '${opt}', this)">
-                  ${opt}
-                </button>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-    }
-  });
-
-  html += `
-    <div class="form-group" style="margin-top:15px;">
-      <label>JUMLAH PAKET / PORSI</label>
-      <input type="number" id="subQtyInput" class="form-input" value="1" min="1" style="font-size:18px; font-weight:bold; text-align:center;">
-    </div>
-  `;
-
-  modalBody.innerHTML = html;
-  document.getElementById("subCategoryModal").style.display = "flex";
-}
-
-function adjustSubCounter(groupName, optionValue, delta, groupIdx) {
-  if (!selectedSubOptions[groupName]) selectedSubOptions[groupName] = {};
-  
-  let currentVal = selectedSubOptions[groupName][optionValue] || 0;
-  let newVal = Math.max(0, currentVal + delta);
-  selectedSubOptions[groupName][optionValue] = newVal;
-
-  const elementId = `cnt_${groupIdx}_${optionValue.replace(/\s+/g, '_')}`;
-  const el = document.getElementById(elementId);
-  if (el) el.innerText = newVal;
-
-  const totalItems = Object.values(selectedSubOptions[groupName]).reduce((a, b) => a + b, 0);
-  const tagEl = document.getElementById(`totalCounterTag_${groupIdx}`);
-  if (tagEl) tagEl.innerText = `Total: ${totalItems} Item`;
-}
-
-function selectSingleSubOption(groupName, optionValue, btn) {
-  selectedSubOptions[groupName] = optionValue;
-  const parent = btn.parentElement;
-  parent.querySelectorAll('.chip-option').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-}
-
-function closeSubModal() {
-  document.getElementById("subCategoryModal").style.display = "none";
-  activeSubProduct = null;
-}
-
-function confirmSubCategorySelection() {
-  if (!activeSubProduct) return;
-  const qty = parseInt(document.getElementById("subQtyInput").value) || 1;
-  
-  let formattedSelections = [];
-
-  Object.keys(selectedSubOptions).forEach(key => {
-    const val = selectedSubOptions[key];
-    if (typeof val === 'object' && val !== null) {
-      let itemsList = [];
-      Object.keys(val).forEach(itemKey => {
-        if (val[itemKey] > 0) {
-          itemsList.push(`${val[itemKey]} ${itemKey}`);
-        }
-      });
-      if (itemsList.length > 0) {
-        formattedSelections.push(itemsList.join(', '));
-      }
-    } else if (val) {
-      formattedSelections.push(val);
-    }
-  });
-
-  const subVariantText = formattedSelections.join(' | ');
-
-  addToCart(activeSubProduct, qty, subVariantText);
-  closeSubModal();
-}
-
-function addToCart(product, qty, subVariant) {
-  const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant);
+  const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant && item.itemNote === itemNote);
   if (existing) {
     existing.qty += qty;
   } else {
-    cart.push({ product: product, qty: qty, subVariant: subVariant || "" });
+    cart.push({ product: product, qty: qty, subVariant: subVariant || "", itemNote: itemNote });
   }
   updateCartUI();
   filterProducts();
@@ -452,7 +313,7 @@ function updateDirectQty(productId, newQty) {
       cart[existingIndex].qty = newQty;
     } else {
       const product = allProducts.find(p => p.id === productId);
-      if (product) cart.push({ product: product, qty: newQty, subVariant: "" });
+      if (product) cart.push({ product: product, qty: newQty, subVariant: "", itemNote: "" });
     }
   }
   updateCartUI();
@@ -487,10 +348,8 @@ function filterProducts() {
   let filtered = allProducts.filter(p => {
     const statusAktif = (p['Aktif (Y/N)'] || p.aktif || p.Aktif || p[8] || 'Y').toString().trim().toUpperCase();
     const isAktif = statusAktif === 'Y';
-
     const matchCat = selectedCategory === "ALL" || p.kategori === selectedCategory;
     const matchSearch = p.nama.toLowerCase().includes(keyword);
-    
     return isAktif && matchCat && matchSearch;
   });
 
@@ -530,6 +389,7 @@ function renderModalCartList() {
       <div>
         <div class="cart-item-name">${item.product.nama}</div>
         ${item.subVariant ? `<div class="cart-item-sub">[ ${item.subVariant} ]</div>` : ''}
+        ${item.itemNote ? `<div class="cart-item-sub" style="color:#d32f2f; font-weight:bold;">Catatan: ${item.itemNote}</div>` : ''}
         <div class="cart-item-price">Rp${formatRupiah(item.product.harga)} x ${item.qty}</div>
       </div>
       <div class="qty-controls">
@@ -603,11 +463,12 @@ async function processPayment() {
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
     if (i.subVariant) nameStr += ` (${i.subVariant})`;
+    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; // Tambahkan note ke struk
     return `${nameStr} (${i.qty}x)`;
   }).join(", ");
 
   if (noteValue) {
-    detailText += ` | Catatan: ${noteValue}`;
+    detailText += ` | Catatan Pesanan: ${noteValue}`;
   }
 
   const payload = {
@@ -674,12 +535,13 @@ function printReceipt(tx, note) {
     itemsToPrint.forEach(i => {
       let itemLabel = i.product.nama;
       if (i.subVariant) itemLabel += `\n  [${i.subVariant}]`;
+      if (i.itemNote) itemLabel += `\n  *Note: ${i.itemNote}`;
       let itemTotal = i.qty * (i.product.harga || 0);
       receiptText += `${itemLabel}\n  ${i.qty} x Rp${formatRupiah(i.product.harga)} = Rp${formatRupiah(itemTotal)}\n`;
     });
 
     receiptText += `--------------------------------\n`;
-    if (noteToPrint) receiptText += `Note: ${noteToPrint}\n--------------------------------\n`;
+    if (noteToPrint) receiptText += `Catatan Pesanan: ${noteToPrint}\n--------------------------------\n`;
     receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
     receiptText += `--------------------------------\n`;
     receiptText += `${storeBottom}\n\n\n`;
@@ -701,14 +563,18 @@ function printReceipt(tx, note) {
       Bayar: ${tx.jenisPembayaran}<br>
       ----------------------------------<br>
       ${itemsToPrint.map(i => `
-        <div>${i.product.nama} ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}</div>
+        <div>
+          ${i.product.nama} 
+          ${i.subVariant ? `<br><small>[${i.subVariant}]</small>` : ''}
+          ${i.itemNote ? `<br><small style="font-weight:bold;">*Note: ${i.itemNote}</small>` : ''}
+        </div>
         <div style="display:flex; justify-content:space-between;">
           <span>${i.qty} x Rp${formatRupiah(i.product.harga)}</span>
           <span>Rp${formatRupiah(i.qty * (i.product.harga || 0))}</span>
         </div>
       `).join('')}
       ----------------------------------<br>
-      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Note: ${noteToPrint}</div>----------------------------------<br>` : ''}
+      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Catatan Pesanan: ${noteToPrint}</div>----------------------------------<br>` : ''}
       <div style="display:flex; justify-content:space-between; font-weight:bold;">
         <span>TOTAL:</span>
         <span>Rp${formatRupiah(tx.totalBelanja)}</span>
@@ -924,9 +790,9 @@ function cetakUlangStrukTerakhir() {
 
 // Handler event klik luar modal untuk menutup Modal Detail Produk
 window.addEventListener('click', function(event) {
-  const modalDetail = document.getElementById('modalDetail');
-  if (event.target === modalDetail) {
-    tutupModalDetail();
+  const detailModal = document.getElementById('detailModal');
+  if (event.target === detailModal) {
+    closeDetailModal();
   }
 });
 

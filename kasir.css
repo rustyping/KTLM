@@ -275,3 +275,22 @@ input:checked + .slider:before { transform: translateX(20px); }
   color: #2e7d32;
   margin-bottom: 15px;
 }
+
+/* Tombol Add pada Kartu Produk */
+.btn-add-action {
+  width: 100%;
+  padding: 6px 0;
+  background: #ffffff;
+  border: 1px solid #d32f2f;
+  color: #d32f2f;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+}
+.btn-add-action:active {
+  transform: scale(0.95);
+  background: #ffebee;
+}

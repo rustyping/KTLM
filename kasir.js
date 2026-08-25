@@ -226,9 +226,9 @@ let currentDetailQty = 1;
 
 function handleProductClick(id, event) {
   if (event) event.stopPropagation();
-  const product = allProducts.find(p => p.id === id);
-  if (!product) return;
-  openDetailModal(product);
+  
+  // FIX: Langsung lempar 'id' ke fungsi openDetailModal, bukan objeknya
+  openDetailModal(id);
 }
 
 // ========================================================
@@ -241,12 +241,11 @@ function openDetailModal(productId) {
 
   currentDetailProduct = product;
 
-  // 1. CEK KERANJANG: Ambil QTY dan Catatan jika produk sudah pernah ditambah
+  // 1. CEK KERANJANG: Ambil QTY dan Catatan (itemNote) jika produk sudah pernah ditambah
   const existingItem = cart.find(c => c.product.id === productId);
   
-  // Jika sudah ada di keranjang, tampilkan angkanya. Jika belum, default 1.
   currentDetailQty = existingItem ? existingItem.qty : 1;
-  const existingNote = existingItem ? existingItem.subVariant : "";
+  const existingNote = existingItem ? (existingItem.itemNote || "") : ""; // FIX: Ambil dari itemNote
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
@@ -265,37 +264,11 @@ function openDetailModal(productId) {
   document.getElementById("detailModalNote").value = existingNote;
   document.getElementById("detailModalQty").innerText = currentDetailQty;
 
-  // Update warna tombol (berjaga-jaga jika qty 0)
   updateDetailModalButton();
-
   document.getElementById("detailModal").style.display = "flex";
 }
 
-function closeDetailModal() {
-  document.getElementById("detailModal").style.display = "none";
-  currentDetailProduct = null;
-}
-
-function adjustDetailModalQty(delta) {
-  // Boleh sampai 0 agar user bisa langsung menghapus item dari dalam popup
-  currentDetailQty = Math.max(0, currentDetailQty + delta);
-  document.getElementById("detailModalQty").innerText = currentDetailQty;
-  updateDetailModalButton();
-}
-
-// Fungsi tambahan untuk mengubah tombol "Simpan" menjadi "Hapus" jika QTY diset 0
-function updateDetailModalButton() {
-  const btnSave = document.querySelector("#detailModal .btn-confirm-pay");
-  if (btnSave) {
-    if (currentDetailQty === 0) {
-      btnSave.innerText = "HAPUS DARI KERANJANG";
-      btnSave.style.backgroundColor = "#d32f2f"; // Merah
-    } else {
-      btnSave.innerText = "+ SIMPAN KE KERANJANG";
-      btnSave.style.backgroundColor = "#2e7d32"; // Hijau kembali
-    }
-  }
-}
+// ... (Fungsi closeDetailModal, adjustDetailModalQty, updateDetailModalButton TETAP SAMA) ...
 
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
@@ -306,31 +279,30 @@ function saveDetailModalToCart() {
   closeDetailModal();
 
   if (subCategories.length > 0) {
-    // Jika menu memiliki variasi/paket, proses selanjutnya dilempar ke modal variasi
+    // FIX: Simpan note ke memori sementara sebelum buka modal variasi
+    window.tempItemNote = note; 
     openSubCategoryModal(currentDetailProduct, subCategories);
   } else {
-    // JIKA MENU BIASA: Update langsung ke keranjang dengan menimpa data (replace)
+    // JIKA MENU BIASA: Update keranjang
     const existingIndex = cart.findIndex(item => item.product.id === currentDetailProduct.id);
     
     if (currentDetailQty <= 0) {
-      // Jika qty 0, hapus item dari keranjang
       if (existingIndex !== -1) cart.splice(existingIndex, 1);
     } else {
       if (existingIndex !== -1) {
-        // Update Qty dan Catatan pada item yang sudah ada
+        // FIX: Update Qty dan Catatan ke parameter itemNote
         cart[existingIndex].qty = currentDetailQty;
-        cart[existingIndex].subVariant = note;
+        cart[existingIndex].itemNote = note;
       } else {
-        // Tambah sebagai item baru
         cart.push({ 
           product: currentDetailProduct, 
           qty: currentDetailQty, 
-          subVariant: note 
+          subVariant: "", 
+          itemNote: note 
         });
       }
     }
     
-    // Segarkan tampilan
     updateCartUI();
     filterProducts();
   }

@@ -99,6 +99,7 @@ function renderProducts(products) {
   }
   
   grid.innerHTML = products.map(p => {
+    // Hitung total qty produk ini di keranjang
     const totalQtyInCart = cart
       .filter(c => c.product.id === p.id)
       .reduce((sum, i) => sum + i.qty, 0);
@@ -118,14 +119,14 @@ function renderProducts(products) {
             ${hasSub ? `<span class="variant-tag">+ Variasi/Paket</span>` : ''}
           </div>
           
-          <div class="product-details">
+          <div class="product-details" style="flex-direction: column; align-items: stretch;">
             <div class="product-info-text">
               <div class="product-title">${p.nama}</div>
               <div class="product-price">Rp${formatRupiah(p.harga)}</div>
             </div>
 
             ${isSelected ? `
-              <div class="qty-badge-inline" onclick="event.stopPropagation()">
+              <div class="qty-badge-inline" style="margin-top:6px; justify-content:space-between;" onclick="event.stopPropagation()">
                 <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
                 <input type="number" min="0" class="qty-input-inline" 
                        value="${totalQtyInCart}" 
@@ -133,7 +134,9 @@ function renderProducts(products) {
                        onfocus="this.select()">
                 <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
               </div>
-            ` : ''}
+            ` : `
+              <button type="button" class="btn-add-action" onclick="handleAddClick('${p.id}', event)">Add</button>
+            `}
           </div>
         </div>
       `;
@@ -146,21 +149,44 @@ function renderProducts(products) {
             ${hasSub ? `<span class="variant-tag-inline">+ Variasi/Paket</span>` : ''}
           </div>
           
-          ${isSelected ? `
-            <div class="qty-badge-inline" onclick="event.stopPropagation()">
-              <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
-              <input type="number" min="0" class="qty-input-inline" 
-                     value="${totalQtyInCart}" 
-                     onchange="onQtyDirectChange('${p.id}', this.value)"
-                     onfocus="this.select()">
-              <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
-            </div>
-          ` : ''}
+          <div onclick="event.stopPropagation()">
+            ${isSelected ? `
+              <div class="qty-badge-inline">
+                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', -1, event)">-</button>
+                <input type="number" min="0" class="qty-input-inline" 
+                       value="${totalQtyInCart}" 
+                       onchange="onQtyDirectChange('${p.id}', this.value)"
+                       onfocus="this.select()">
+                <button type="button" class="btn-qty-card" onclick="changeProductQtyInline('${p.id}', 1, event)">+</button>
+              </div>
+            ` : `
+              <button type="button" class="btn-add-action" style="padding: 4px 16px; margin-top:0;" onclick="handleAddClick('${p.id}', event)">Add</button>
+            `}
+          </div>
         </div>
       `;
     }
   }).join('');
 }
+
+// Fungsi baru untuk menangani klik tombol "Add"
+function handleAddClick(productId, event) {
+  // Cegah event klik merembet ke kartu menu (supaya popup modal tidak terbuka saat nge-klik tombol Add)
+  if (event) event.stopPropagation(); 
+  
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+
+  const subCategories = getSubCategoriesForProduct(product);
+  
+  // Jika menu punya variasi/paket, buka modal variasi. Jika tidak, langsung masuk keranjang 1 qty.
+  if (subCategories.length > 0) {
+    openSubCategoryModal(product, subCategories);
+  } else {
+    addToCart(product, 1, "");
+  }
+}
+
 
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();

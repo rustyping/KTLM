@@ -226,8 +226,6 @@ let currentDetailQty = 1;
 
 function handleProductClick(id, event) {
   if (event) event.stopPropagation();
-  
-  // FIX: Langsung lempar 'id' ke fungsi openDetailModal, bukan objeknya
   openDetailModal(id);
 }
 
@@ -236,36 +234,45 @@ function handleProductClick(id, event) {
 // ========================================================
 
 function openDetailModal(productId) {
-  const product = allProducts.find(p => p.id === productId);
-  if (!product) return;
+  // FIX 1: Gunakan String() untuk mencocokkan ID agar kebal bentrok Angka vs Teks
+  const product = allProducts.find(p => String(p.id) === String(productId));
+  
+  if (!product) {
+    console.error("Produk tidak ditemukan:", productId);
+    return;
+  }
 
   currentDetailProduct = product;
 
-  // 1. CEK KERANJANG: Ambil QTY dan Catatan (itemNote) jika produk sudah pernah ditambah
-  const existingItem = cart.find(c => c.product.id === productId);
-  
+  // Cek Keranjang
+  const existingItem = cart.find(c => String(c.product.id) === String(productId));
   currentDetailQty = existingItem ? existingItem.qty : 1;
-  const existingNote = existingItem ? (existingItem.itemNote || "") : ""; // FIX: Ambil dari itemNote
+  const existingNote = existingItem ? (existingItem.itemNote || "") : "";
 
   const rawImgUrl = product['Link Gambar'] || product.linkGambar || product.gambar || product[10];
   const imgUrl = fixImageUrl(rawImgUrl);
+
+  // FIX 2: Pengecekan HTML. Jika HTML belum dipasang, akan muncul peringatan.
+  const modalEl = document.getElementById("detailModal");
+  if (!modalEl) {
+    alert("ERROR: HTML Modal Detail belum ditambahkan ke kasir.html!");
+    return;
+  }
 
   document.getElementById("detailModalHeaderTitle").innerText = product.nama;
   document.getElementById("detailModalTitle").innerText = product.nama;
   document.getElementById("detailModalImg").src = imgUrl;
   
-  // Tangkap deskripsi jika ada
   let desc = product.deskripsi || product.Deskripsi || product.keterangan || "";
   document.getElementById("detailModalDesc").innerText = desc || "-";
   
   document.getElementById("detailModalPrice").innerText = `Rp${formatRupiah(product.harga)}`;
   
-  // 2. SET ISI QTY & CATATAN KE MODAL
   document.getElementById("detailModalNote").value = existingNote;
   document.getElementById("detailModalQty").innerText = currentDetailQty;
 
   updateDetailModalButton();
-  document.getElementById("detailModal").style.display = "flex";
+  modalEl.style.display = "flex";
 }
 
 // ... (Fungsi closeDetailModal, adjustDetailModalQty, updateDetailModalButton TETAP SAMA) ...

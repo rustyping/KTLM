@@ -53,10 +53,20 @@ async function loadData() {
     allProducts = data.products || [];
     allSubcategories = data.subkategori || [];
 
-    // Header Nama Toko
+    // Header Nama Toko & Logo
     const titleEl = document.getElementById("storeTitleHeader");
     if (titleEl && storeConfig.Header) {
       titleEl.innerText = storeConfig.Header;
+    }
+
+    const logoEl = document.getElementById("storeLogoHeader");
+    // Mengambil data dari Sheet 'data'. (Asumsi di cell A8 mas menuliskan "Logo" atau "logo")
+    const logoLink = storeConfig.Logo || storeConfig.logo || storeConfig.LOGO || ""; 
+    
+    if (logoEl && logoLink) {
+      // fixImageUrl digunakan agar jika link berupa Google Drive tetap bisa terbaca dengan baik
+      logoEl.src = fixImageUrl(logoLink);
+      logoEl.style.display = "block"; // Tampilkan gambar
     }
 
     renderCategories();

@@ -11,6 +11,7 @@ let selectedCategory = "ALL";
 let activeSubProduct = null;
 let selectedSubOptions = {};
 let lastTransaction = null;
+let currentCartSubtotal = 0; // Variabel penyimpan subtotal keranjang
 
 let posSettings = {
   showImages: true,
@@ -99,7 +100,6 @@ function renderProducts(products) {
   }
   
   grid.innerHTML = products.map(p => {
-    // Hitung total qty produk ini di keranjang
     const totalQtyInCart = cart
       .filter(c => c.product.id === p.id)
       .reduce((sum, i) => sum + i.qty, 0);
@@ -169,9 +169,7 @@ function renderProducts(products) {
   }).join('');
 }
 
-// Fungsi baru untuk menangani klik tombol "Add"
 function handleAddClick(productId, event) {
-  // Cegah event klik merembet ke kartu menu (supaya popup modal tidak terbuka saat nge-klik tombol Add)
   if (event) event.stopPropagation(); 
   
   const product = allProducts.find(p => p.id === productId);
@@ -179,14 +177,12 @@ function handleAddClick(productId, event) {
 
   const subCategories = getSubCategoriesForProduct(product);
   
-  // Jika menu punya variasi/paket, buka modal variasi. Jika tidak, langsung masuk keranjang 1 qty.
   if (subCategories.length > 0) {
     openSubCategoryModal(product, subCategories);
   } else {
     addToCart(product, 1, "");
   }
 }
-
 
 function changeProductQtyInline(productId, delta, event) {
   if (event) event.stopPropagation();
@@ -210,7 +206,6 @@ function changeProductQtyInline(productId, delta, event) {
   }
 }
 
-// FUNGSI INPUT MANUAL QTY DI KARTU LUAR
 function onQtyDirectChange(productId, val) {
   const product = allProducts.find(p => p.id === productId);
   if (!product) return;
@@ -221,10 +216,8 @@ function onQtyDirectChange(productId, val) {
   const subCategories = getSubCategoriesForProduct(product);
 
   if (subCategories.length > 0) {
-    // Jika ada variasi/paket, tetap lemparkan ke modal
     openSubCategoryModal(product, subCategories);
   } else {
-    // Update angkanya secara langsung
     updateDirectQty(productId, newQty);
   }
 }
@@ -238,7 +231,7 @@ function getSubCategoriesForProduct(product) {
 }
 
 /* =========================================================
-   TAHAP 1: MODAL DETAIL PRODUK (DESAIN KATALOG)
+   MODAL DETAIL PRODUK
    ========================================================= */
 let currentDetailProduct = null;
 let currentDetailQty = 1;
@@ -250,8 +243,6 @@ function handleProductClick(id, event) {
   openDetailModal(product);
 }
 
-// 1. FUNGSI MEMBUKA MODAL
-// 1. UPDATE FUNGSI MEMBUKA MODAL
 function openDetailModal(product) {
   currentDetailProduct = product;
   
@@ -273,26 +264,20 @@ function openDetailModal(product) {
   document.getElementById('detailModalPrice').innerText = 'Rp' + formatRupiah(product.harga);
   document.getElementById('detailModalNote').value = existingItem ? (existingItem.itemNote || "") : "";
   
-  // PERBAIKAN: Gunakan .value karena sekarang merupakan isian <input>
   document.getElementById('detailModalQty').value = currentDetailQty;
-
   document.getElementById('detailModal').style.display = 'flex';
 }
-
 
 function closeDetailModal() {
   document.getElementById('detailModal').style.display = 'none';
   currentDetailProduct = null;
 }
 
-// 2. UPDATE FUNGSI TOMBOL PLUS MINUS
 function adjustDetailModalQty(delta) {
   currentDetailQty = Math.max(0, currentDetailQty + delta);
-  // PERBAIKAN: Gunakan .value
   document.getElementById("detailModalQty").value = currentDetailQty;
 }
 
-// 3. FUNGSI BARU UNTUK MENANGKAP KETIKAN MANUAL MODAL
 function handleModalQtyManualChange(val) {
   let newQty = parseInt(val) || 0;
   if (newQty < 0) newQty = 0;
@@ -300,27 +285,21 @@ function handleModalQtyManualChange(val) {
   document.getElementById("detailModalQty").value = currentDetailQty;
 }
 
-
-// 3. FUNGSI SIMPAN KE KERANJANG (ANTI-CRASH)
 function saveDetailModalToCart() {
   if (!currentDetailProduct) return;
   
-  // PENYELAMAT DATA: Kita simpan dulu ke variabel baru 
-  // sebelum dihapus oleh perintah closeDetailModal()
   const productToSave = currentDetailProduct;
   const qtyToSave = currentDetailQty;
   
   const subCategories = getSubCategoriesForProduct(productToSave);
   const itemNote = document.getElementById("detailModalNote").value.trim();
 
-  // Sekarang aman untuk ditutup
   closeDetailModal();
 
   if (subCategories.length > 0) {
     window.tempItemNote = itemNote; 
     openSubCategoryModal(productToSave, subCategories);
   } else {
-    // Timpa atau Tambahkan data ke keranjang
     const existingIndex = cart.findIndex(item => item.product.id === productToSave.id);
     
     if (qtyToSave <= 0) {
@@ -345,15 +324,13 @@ function saveDetailModalToCart() {
 }
 
 // ---------------------------------------------------------
-// MODIFIKASI KERANJANG AGAR MENYIMPAN "CATATAN PER MENU"
+// MANAJEMEN KERANJANG & CHECKOUT MODAL
 // ---------------------------------------------------------
 
-// Modifikasi addToCart agar menerima itemNote
 function addToCart(product, qty, subVariant, itemNote = "") {
-  // Jika ini berasal dari pilihan variasi, ambil note sementaranya
   if (window.tempItemNote) {
     itemNote = window.tempItemNote;
-    window.tempItemNote = ""; // reset
+    window.tempItemNote = ""; 
   }
 
   const existing = cart.find(item => item.product.id === product.id && item.subVariant === subVariant && item.itemNote === itemNote);
@@ -387,10 +364,18 @@ function updateQtyInCartList(index, delta) {
     cart[index].qty += delta;
     if (cart[index].qty <= 0) cart.splice(index, 1);
   }
+  
   updateCartUI();
   renderModalCartList();
   filterProducts();
   
+  // Update Total & Subtotal jika modal konfirmasi pesanan sedang terbuka
+  const checkoutModal = document.getElementById("checkoutModal");
+  if (checkoutModal && checkoutModal.style.display === "flex") {
+    currentCartSubtotal = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
+    updateCheckoutTotalSummary();
+  }
+
   if (cart.length === 0) {
     closeCheckoutModal();
   }
@@ -424,23 +409,44 @@ function updateCartUI() {
 
   const itemCountEl = document.getElementById("barItemCount");
   const totalAmountEl = document.getElementById("barTotalAmount");
-  const modalTotalEl = document.getElementById("modalTotalAmount");
   const btnCheckout = document.getElementById("btnOpenCheckout");
 
   if (itemCountEl) itemCountEl.innerText = `${totalQty} Item`;
   if (totalAmountEl) totalAmountEl.innerText = `Rp${formatRupiah(totalPrice)}`;
-  if (modalTotalEl) modalTotalEl.innerText = `Rp${formatRupiah(totalPrice)}`;
   if (btnCheckout) btnCheckout.disabled = cart.length === 0;
 }
 
 function openCheckoutModal() {
   if (cart.length === 0) return;
+
+  // Hitung subtotal barang (belum ongkir)
+  currentCartSubtotal = cart.reduce((sum, item) => sum + (item.product.harga * item.qty), 0);
+
+  // Reset ongkir ke 0 tiap buka modal
+  const shippingInput = document.getElementById('shippingCostInput');
+  if (shippingInput) shippingInput.value = 0;
+
   renderModalCartList();
+  updateCheckoutTotalSummary();
+
   document.getElementById("checkoutModal").style.display = "flex";
 }
 
 function closeCheckoutModal() {
   document.getElementById("checkoutModal").style.display = "none";
+}
+
+// Dijalankan setiap kali angka di input ongkir diketik/berubah
+function updateCheckoutTotalSummary() {
+  const shippingInput = document.getElementById('shippingCostInput');
+  const shippingCost = shippingInput ? (parseInt(shippingInput.value) || 0) : 0;
+
+  const grandTotal = currentCartSubtotal + shippingCost;
+
+  const totalEl = document.getElementById('modalTotalAmount');
+  if (totalEl) {
+    totalEl.innerText = 'Rp' + formatRupiah(grandTotal);
+  }
 }
 
 function renderModalCartList() {
@@ -503,6 +509,10 @@ function addQuickNote(text) {
   }
 }
 
+// ---------------------------------------------------------
+// PROSES SIMPAN & CETAK STRUK
+// ---------------------------------------------------------
+
 async function processPayment() {
   if (cart.length === 0) return;
 
@@ -519,16 +529,26 @@ async function processPayment() {
   const selectedPayment = document.getElementById("paymentMethodSelect")?.value || "Tunai";
   const noteValue = document.getElementById("orderNote")?.value.trim() || "";
   
-  const totalBelanja = cart.reduce((sum, i) => sum + ((i.product.harga || 0) * i.qty), 0);
+  // Hitung Total dan Ongkir
+  const shippingInput = document.getElementById('shippingCostInput');
+  const shippingCost = shippingInput ? (parseInt(shippingInput.value) || 0) : 0;
   const totalHpp = cart.reduce((sum, i) => sum + ((i.product.hpp || 0) * i.qty), 0);
+  const totalProduk = cart.reduce((sum, i) => sum + ((i.product.harga || 0) * i.qty), 0);
+  
+  // Total Belanja akhir = Harga Produk + Ongkos Kirim
+  const totalBelanja = totalProduk + shippingCost; 
   
   let detailText = cart.map(i => {
     let nameStr = i.product.nama;
     if (i.subVariant) nameStr += ` (${i.subVariant})`;
-    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; // Tambahkan note ke struk
+    if (i.itemNote) nameStr += ` [Note: ${i.itemNote}]`; 
     return `${nameStr} (${i.qty}x)`;
   }).join(", ");
 
+  // Tambahkan keterangan ongkir ke laporan detail Google Sheet
+  if (shippingCost > 0) {
+    detailText += ` | +Ongkir: Rp${formatRupiah(shippingCost)}`;
+  }
   if (noteValue) {
     detailText += ` | Catatan Pesanan: ${noteValue}`;
   }
@@ -539,7 +559,7 @@ async function processPayment() {
     waktu: waktuTx,
     customerName: selectedCustomer,
     detailItems: detailText,
-    totalBelanja: totalBelanja,
+    totalBelanja: totalBelanja, // Sudah termasuk ongkir
     totalHpp: totalHpp,
     jenisPembayaran: selectedPayment,
     uangDiterima: totalBelanja,
@@ -548,7 +568,8 @@ async function processPayment() {
     sumber: "Kasir",
     status: "SELESAI",
     cartItems: JSON.parse(JSON.stringify(cart)),
-    note: noteValue
+    note: noteValue,
+    ongkir: shippingCost // Disimpan khusus agar struk tahu nilai ongkirnya
   };
 
   try {
@@ -565,6 +586,8 @@ async function processPayment() {
     alert("Transaksi Berhasil Disimpan!");
     cart = [];
     if (document.getElementById("orderNote")) document.getElementById("orderNote").value = "";
+    if (document.getElementById("shippingCostInput")) document.getElementById("shippingCostInput").value = 0;
+    
     updateCartUI();
     closeCheckoutModal();
     filterProducts();
@@ -587,6 +610,10 @@ function printReceipt(tx, note) {
 
   const itemsToPrint = (tx && tx.cartItems && tx.cartItems.length > 0) ? tx.cartItems : cart;
   const noteToPrint = note || (tx ? tx.note : "") || "";
+  
+  // Ambil data ongkir (jika ada)
+  const ongkir = tx.ongkir || 0;
+  const subtotal = tx.totalBelanja - ongkir;
 
   if (posSettings.printMode === 'rawbt') {
     let receiptText = `${storeTitle}\n${storeAddr}\nWA: ${storeWa}\n`;
@@ -603,7 +630,15 @@ function printReceipt(tx, note) {
     });
 
     receiptText += `--------------------------------\n`;
-    if (noteToPrint) receiptText += `Catatan Pesanan: ${noteToPrint}\n--------------------------------\n`;
+    
+    // Tampilkan Subtotal & Ongkir jika ongkir terisi
+    if (ongkir > 0) {
+      receiptText += `Subtotal : Rp${formatRupiah(subtotal)}\n`;
+      receiptText += `Ongkir   : Rp${formatRupiah(ongkir)}\n`;
+      receiptText += `--------------------------------\n`;
+    }
+
+    if (noteToPrint) receiptText += `Catatan: ${noteToPrint}\n--------------------------------\n`;
     receiptText += `TOTAL: Rp${formatRupiah(tx.totalBelanja)}\n`;
     receiptText += `--------------------------------\n`;
     receiptText += `${storeBottom}\n\n\n`;
@@ -636,7 +671,20 @@ function printReceipt(tx, note) {
         </div>
       `).join('')}
       ----------------------------------<br>
-      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Catatan Pesanan: ${noteToPrint}</div>----------------------------------<br>` : ''}
+      
+      ${ongkir > 0 ? `
+        <div style="display:flex; justify-content:space-between;">
+          <span>Subtotal:</span>
+          <span>Rp${formatRupiah(subtotal)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Ongkir:</span>
+          <span>Rp${formatRupiah(ongkir)}</span>
+        </div>
+        ----------------------------------<br>
+      ` : ''}
+
+      ${noteToPrint ? `<div style="font-style:italic; margin-bottom:5px;">Catatan: ${noteToPrint}</div>----------------------------------<br>` : ''}
       <div style="display:flex; justify-content:space-between; font-weight:bold;">
         <span>TOTAL:</span>
         <span>Rp${formatRupiah(tx.totalBelanja)}</span>
@@ -648,6 +696,10 @@ function printReceipt(tx, note) {
     receipt.style.display = "none";
   }
 }
+
+// ---------------------------------------------------------
+// NOTIFIKASI PESANAN KATALOG
+// ---------------------------------------------------------
 
 async function checkPendingOrders() {
   try {
@@ -850,7 +902,6 @@ function cetakUlangStrukTerakhir() {
   }
 }
 
-// Handler event klik luar modal untuk menutup Modal Detail Produk
 window.addEventListener('click', function(event) {
   const detailModal = document.getElementById('detailModal');
   if (event.target === detailModal) {

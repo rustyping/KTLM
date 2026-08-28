@@ -8,33 +8,47 @@
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- =======================================================
+       HEADER & NAVIGASI ATAS
+       Berisi nama toko, tombol lonceng notifikasi pesanan online, 
+       dan ikon gir untuk pengaturan kasir.
+       ======================================================= -->
   <header class="app-header">
     <h1>KTLM Kitchen</h1>
     <div style="display: flex; gap: 8px; align-items: center;">
-      <!-- Tombol Pesanan Katalog Masuk -->
+      <!-- Tombol Pesanan Katalog Masuk (Berlogo 🛒) -->
       <button class="btn-settings" onclick="openPendingOrdersModal()" style="position:relative;" title="Pesanan Masuk Katalog">
         🛒 <span id="orderBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#d32f2f; color:white; font-size:10px; padding:2px 6px; border-radius:10px; font-weight:bold;">0</span>
       </button>
+      
+      <!-- Tombol Pengaturan Kasir (Berlogo ⚙️) -->
       <button class="btn-settings" onclick="openSettingsModal()" title="Pengaturan POS">⚙️</button>
     </div>
   </header>
 
-  <!-- Container Utama -->
+  <!-- =======================================================
+       AREA KONTEN UTAMA (PENCARIAN, KATEGORI, DAN MENU)
+       ======================================================= -->
   <div class="main-container">
+    
+    <!-- Kotak Pencarian (Search Box) -->
     <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari menu..." oninput="filterProducts()">
 
+    <!-- Barisan Tombol Kategori Menu (Semua, Minuman, Makanan, dll) -->
     <div class="category-bar" id="categoryBar">
       <button class="cat-btn active" onclick="filterCategory('ALL', this)">Semua</button>
     </div>
 
-    <!-- Grid Produk -->
+    <!-- Kotak Kosong Tempat Kartu Menu Akan Dimunculkan oleh JavaScript -->
     <div class="product-grid" id="productGrid">
       <p style="grid-column: span 2; text-align: center; color: #6c757d; padding: 20px;">Memuat menu...</p>
     </div>
   </div>
 
-  <!-- Bottom Action Bar -->
+  <!-- =======================================================
+       BAR BAWAH (BOTTOM ACTION BAR)
+       Menampilkan ringkasan item & total uang, serta tombol lanjut ke pembayaran
+       ======================================================= -->
   <div class="bottom-bar">
     <div class="bottom-bar-info">
       <span class="bottom-bar-items" id="barItemCount">0 Item</span>
@@ -45,7 +59,11 @@
     </button>
   </div>
 
-  <!-- Modal Pilih Subkategori / Variasi & Mix Counter -->
+
+  <!-- =======================================================
+       MODAL: JENDELA PILIHAN VARIASI & PENYAJIAN
+       (Muncul kalau menu punya pilihan anak/subkategori)
+       ======================================================= -->
   <div class="modal-overlay" id="subCategoryModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -59,7 +77,11 @@
     </div>
   </div>
 
-  <!-- Modal Checkout Kasir Langsung -->
+
+  <!-- =======================================================
+       MODAL: CHECKOUT / KONFIRMASI PEMBAYARAN KASIR
+       (Jendela pop-up sebelum cetak struk)
+       ======================================================= -->
   <div class="modal-overlay" id="checkoutModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -68,7 +90,8 @@
       </div>
       
       <div class="modal-body">
-        <!-- 1. RINCIAN PESANAN (DITAMPILKAN PERTAMA) -->
+        
+        <!-- 1. Daftar Barang Belanjaan -->
         <div class="form-group">
           <label style="font-weight: bold; color: #2e7d32; margin-bottom: 8px; display: block;">RINCIAN PESANAN</label>
           <div id="modalCartList"></div>
@@ -76,7 +99,7 @@
 
         <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
 
-        <!-- 2. PELANGGAN -->
+        <!-- 2. Pilihan Pelanggan -->
         <div class="form-group">
           <label for="customerSelect">PELANGGAN / CUSTOMER</label>
           <select id="customerSelect" class="form-select">
@@ -84,7 +107,7 @@
           </select>
         </div>
 
-        <!-- 3. METODE PEMBAYARAN -->
+        <!-- 3. Pilihan Metode Pembayaran -->
         <div class="form-group">
           <label for="paymentMethodSelect">METODE PEMBAYARAN</label>
           <select id="paymentMethodSelect" class="form-select">
@@ -94,11 +117,12 @@
           </select>
         </div>
 
-        <!-- 4. CATATAN KHUSUS -->
+        <!-- 4. Area Ketik Catatan Pesanan Khusus -->
         <div class="form-group">
           <label for="orderNote">CATATAN KHUSUS / NOTE</label>
           <textarea id="orderNote" class="form-textarea" placeholder="Contoh: Bungkus, Pedas, Tanpa cuka..."></textarea>
           
+          <!-- Tombol pintasan untuk mengetik catatan lebih cepat -->
           <div class="quick-chips">
             <button class="chip-btn" onclick="addQuickNote('Bungkus')">+ Bungkus</button>
             <button class="chip-btn" onclick="addQuickNote('Makan di Tempat')">+ Dine-In</button>
@@ -107,28 +131,32 @@
             <button class="chip-btn" onclick="addQuickNote('Tanpa Cuko')">+ Tanpa Cuko</button>
           </div>
         </div>
-      </div>
 
-    <!-- INPUT ONGKOS KIRIM MANUAL -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 6px 0; border-top: 1px dashed #e2e8f0;">
-      <label for="shippingCostInput" style="font-size: 13px; font-weight: 700; color: #475569;">ONGKOS KIRIM (Rp):</label>
-      
-      <input type="text" id="shippingCostInput" value="0" inputmode="numeric" placeholder="0" oninput="handleShippingInput(this)" onfocus="this.select()" style="width: 120px; padding: 6px 10px; font-size: 14px; font-weight: bold; text-align: right; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
-    </div>
-      
-      <div class="summary-line" style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
-        <span>TOTAL:</span>
-        <span id="modalTotalAmount">Rp0</span>
-      </div>
-
+        <!-- 5. Input Ongkos Kirim (Dengan fitur titik otomatis) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 6px 0; border-top: 1px dashed #e2e8f0;">
+          <label for="shippingCostInput" style="font-size: 13px; font-weight: 700; color: #475569;">ONGKOS KIRIM (Rp):</label>
           
+          <!-- inputmode="numeric" dan type="text" di bawah ini sangat penting agar bisa mengetik angka tapi menerima sisipan karakter titik -->
+          <input type="text" id="shippingCostInput" value="0" inputmode="numeric" placeholder="0" oninput="handleShippingInput(this)" onfocus="this.select()" style="width: 120px; padding: 6px 10px; font-size: 14px; font-weight: bold; text-align: right; border: 1px solid #cbd5e1; border-radius: 6px; outline: none;">
+        </div>
+        
+        <!-- 6. Tulisan Total Akhir Pembayaran -->
+        <div class="summary-line" style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+          <span>TOTAL:</span>
+          <span id="modalTotalAmount">Rp0</span>
+        </div>
+
+        <!-- 7. Tombol Eksekusi -->
         <button class="btn-confirm-pay" onclick="processPayment()">BAYAR & PRINT STRUK</button>
       </div>
     </div>
   </div>
 
-  
-  <!-- Modal Pesanan Masuk (Katalog Online) -->
+
+  <!-- =======================================================
+       MODAL: DAFTAR PESANAN MASUK KATALOG ONLINE
+       (Muncul kalau kasir menekan ikon lonceng / keranjang di atas)
+       ======================================================= -->
   <div class="modal-overlay" id="pendingOrdersModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -141,7 +169,11 @@
     </div>
   </div>
 
-  <!-- Modal Pengaturan -->
+
+  <!-- =======================================================
+       MODAL: PENGATURAN KASIR
+       (Muncul kalau kasir menekan ikon roda gigi di atas)
+       ======================================================= -->
   <div class="modal-overlay" id="settingsModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -150,6 +182,8 @@
       </div>
 
       <div class="modal-body">
+        
+        <!-- Pilihan Menyalakan/Mematikan Gambar Menu (Bentuk Switch) -->
         <div class="form-group">
           <label>TAMPILAN GAMBAR MENU</label>
           <div class="toggle-container">
@@ -161,6 +195,7 @@
           </div>
         </div>
 
+        <!-- Pilihan Alat Cetak (RawBT untuk Bluetooth HP, Browser untuk Laptop/Web) -->
         <div class="form-group">
           <label for="settingPrintMode">METODE PENCETAKAN STRUK</label>
           <select id="settingPrintMode" class="form-select">
@@ -178,7 +213,7 @@
         </div>
 
         <div class="form-group">
-          <label for="settingHeaderStore">NAMA TOKO (HEADER)</label>
+          <label for="settingHeaderStore">NAMA TOKO (HEADER STRUK)</label>
           <input type="text" id="settingHeaderStore" class="form-input" placeholder="KTLM Kitchen">
         </div>
 
@@ -199,11 +234,15 @@
     </div>
   </div>
 
+
+  <!-- Area Khusus Tersembunyi: Digunakan hanya untuk cetak struk via Laptop/Browser (Bukan RawBT) -->
   <div id="receipt-print"></div>
 
-<script src="kasir.js?v=1"></script>
-  
-  <!-- Notification Bubble Cetak Ulang -->
+
+  <!-- =======================================================
+       BALON NOTIFIKASI: CETAK ULANG STRUK TRANSAKSI TERAKHIR
+       (Mundur ke atas layar sejenak setelah transaksi sukses)
+       ======================================================= -->
   <div id="toastReprint" class="toast-reprint" style="display: none;">
     <span>✅ Transaksi Berhasil</span>
     <button type="button" class="btn-reprint" onclick="cetakUlangStrukTerakhir()">🖨️ Cetak Ulang Struk</button>
@@ -211,36 +250,49 @@
   </div>
 
 
-
-<!-- Modal Detail Menu (Mirip Katalog Gambar 2) -->
+  <!-- =======================================================
+       MODAL: DETAIL MENU (POP-UP GAMBAR BESAR)
+       (Muncul ketika kasir mengeklik bagian tengah kartu menu)
+       ======================================================= -->
   <div class="modal-overlay" id="detailModal" style="display: none;">
     <div class="modal-content" style="max-width: 450px;">
       <div class="modal-header">
         <span class="modal-title" id="detailModalHeaderTitle">Detail Menu</span>
         <button class="btn-close" onclick="closeDetailModal()">&times;</button>
       </div>
+      
       <div class="modal-body" style="text-align: center; padding: 16px;">
+        <!-- Foto Menu -->
         <img id="detailModalImg" src="" alt="Menu" style="width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; background: #f8f9fa;">
+        
+        <!-- Judul & Harga -->
         <h3 id="detailModalTitle" style="font-size: 18px; font-weight: 700; color: #212529; margin-bottom: 4px;">Nama Menu</h3>
         <p id="detailModalDesc" style="font-size: 13px; color: #6c757d; margin-bottom: 8px; line-height: 1.4;"></p>
         <div id="detailModalPrice" style="font-size: 16px; font-weight: 800; color: #1b5e20; margin-bottom: 20px;">Rp0</div>
 
+        <!-- Catatan Khusus Per Menu (Contoh: Kuah pisah) -->
         <div class="form-group" style="text-align: left; margin-bottom: 20px;">
           <label style="font-weight: 700; font-size: 11px; color: #6c757d; margin-bottom: 8px; display: block;">CATATAN UNTUK MENU INI</label>
           <input type="text" id="detailModalNote" class="form-input" placeholder="Contoh: Pedas, tidak pedas..." style="width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 14px;">
         </div>
 
+        <!-- Tombol Plus Minus Jumlah Pesanan -->
         <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px;">
           <button type="button" style="width:38px; height:38px; border-radius:50%; border:1px solid #ced4da; background:#fff; font-size:20px; font-weight:bold; cursor:pointer; color:#333;" onclick="adjustDetailModalQty(-1)">-</button>
-         <input type="number" id="detailModalQty" value="1" min="0" onchange="handleModalQtyManualChange(this.value)" onfocus="this.select()" style="font-size: 18px; font-weight: 800; width: 60px; text-align: center; border:1px solid #ced4da; border-radius:8px; padding:6px 0; color:#333; outline: none; background: transparent;">
+          
+          <input type="number" id="detailModalQty" value="1" min="0" onchange="handleModalQtyManualChange(this.value)" onfocus="this.select()" style="font-size: 18px; font-weight: 800; width: 60px; text-align: center; border:1px solid #ced4da; border-radius:8px; padding:6px 0; color:#333; outline: none; background: transparent;">
+          
           <button type="button" style="width:38px; height:38px; border-radius:50%; border:1px solid #ced4da; background:#fff; font-size:20px; font-weight:bold; cursor:pointer; color:#333;" onclick="adjustDetailModalQty(1)">+</button>
         </div>
       </div>
+
       <div class="modal-footer" style="padding: 16px; border-top: 1px solid #eee;">
         <button style="width:100%; padding:14px; background:#d32f2f; color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);" onclick="saveDetailModalToCart()">+ SIMPAN KE KERANJANG</button>
       </div>
     </div>
   </div>
   
+  <!-- SANGAT PENTING: Mengubah angka v=2 ini memaksa peramban membuang memori error lama dan membaca kode JS yang baru -->
+  <script src="kasir.js?v=2"></script>
 </body>
 </html>

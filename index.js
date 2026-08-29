@@ -58,11 +58,6 @@ async function loadData() {
     const logoLink = storeConfig.Logo || storeConfig.logo || storeConfig.LOGO || ""; 
     
     if (logoEl && logoLink) {
-      logoEl.src = fixImageUrl(logoLink);
-      logoEl.style.display = "block"; 
-    }
-    
-    if (logoEl && logoLink) {
       // fixImageUrl digunakan agar jika link berupa Google Drive tetap bisa terbaca dengan baik
       logoEl.src = fixImageUrl(logoLink);
       logoEl.style.display = "block"; // Tampilkan gambar
@@ -269,14 +264,10 @@ function changeQtyCard(productId, delta) {
 }
 
 /* MODAL DETAIL PRODUK (POPUP KLIK GAMBAR) */
-// Modal Detail Produk (Gambar 2: Mengisi Keterangan Kolom F)
 function openProductDetailModal(product) {
   currentDetailProduct = product;
   const existingItem = cart.find(function(item) { return item.product.id === product.id; });
   currentDetailQty = existingItem ? existingItem.qty : 1;
-
-  // Cek struktur data produk di Console Browser (F12) untuk memastikan nama kolom
-  console.log("Data Produk:", product);
 
   const titleEl = document.getElementById("detailModalTitle");
   if (titleEl) titleEl.innerText = product.nama || "";
@@ -284,15 +275,12 @@ function openProductDetailModal(product) {
   const nameEl = document.getElementById("detailModalName");
   if (nameEl) nameEl.innerText = product.nama || "";
 
-  // 1. CARI KETERANGAN DARI KOLOM F (Dengam Fallback Fleksibel)
   let descText = "";
   if (product) {
-    // Cek kecocokan nama properti umum
     descText = product.keterangan || product.Keterangan || product.KETERANGAN || 
                product.deskripsi || product.Deskripsi || product.ket || product.Ket || 
                product[5] || "";
 
-    // Jika belum ketemu, cari nama header kolom yang mengandung kata 'keterangan', 'deskripsi', atau 'ket'
     if (!descText && typeof product === 'object') {
       const foundKey = Object.keys(product).find(function(key) {
         return /keterangan|deskripsi|ket|info|detail/i.test(key);
@@ -303,7 +291,6 @@ function openProductDetailModal(product) {
     }
   }
 
-  // 2. TAMPILKAN KE ELEMEN #detailModalDesc
   const descEl = document.getElementById("detailModalDesc");
   if (descEl) {
     descEl.innerText = descText || ""; 
@@ -669,7 +656,18 @@ async function submitCatalogOrder() {
       body: JSON.stringify(payload)
     });
 
-    const targetWaRaw = storeConfig.WA || "085838976880";
+    // PENGAMBILAN NOMOR WHATSAPP DINAMIS DARI GOOGLE SHEET (DATA CELL B7)
+    const targetWaRaw = storeConfig.WA || storeConfig.Wa || storeConfig.wa || storeConfig.WhatsApp || storeConfig.Whatsapp || storeConfig.Telepon || storeConfig.Telp || "";
+    
+    if (!targetWaRaw) {
+      alert("Maaf, Nomor WhatsApp tujuan belum diatur pada Google Sheet (Sheet 'DATA'). Pesanan tidak dapat dilanjutkan.");
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = "📲 KIRIM ORDER VIA WHATSAPP";
+      }
+      return;
+    }
+
     const targetWaFormatted = formatToWhatsappNumber(targetWaRaw);
 
     let waText = "*PESANAN BARU - KATALOG ONLINE*\n";

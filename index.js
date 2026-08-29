@@ -656,11 +656,13 @@ async function submitCatalogOrder() {
       body: JSON.stringify(payload)
     });
 
-    // PENGAMBILAN NOMOR WHATSAPP DINAMIS DARI GOOGLE SHEET (DATA CELL B7)
-    const targetWaRaw = storeConfig.WA || storeConfig.Wa || storeConfig.wa || storeConfig.WhatsApp || storeConfig.Whatsapp || storeConfig.Telepon || storeConfig.Telp || "";
+    // PENGAMBILAN NOMOR WHATSAPP DINAMIS DARI GOOGLE SHEET
+    // PERBAIKAN: Mengutamakan pencarian baris "WA Otomatis" (Baris 7) sebelum "WA" biasa (Baris 3)
+    const targetWaRaw = storeConfig["WA Otomatis"] || storeConfig.WA || storeConfig.Wa || storeConfig.wa || "";
     
     if (!targetWaRaw) {
-      alert("Maaf, Nomor WhatsApp tujuan belum diatur pada Google Sheet (Sheet 'DATA'). Pesanan tidak dapat dilanjutkan.");
+      alert("Maaf, Nomor WhatsApp tujuan belum diatur pada Google Sheet. Pesanan tidak dapat dilanjutkan.");
+
       if (btnSubmit) {
         btnSubmit.disabled = false;
         btnSubmit.innerText = "📲 KIRIM ORDER VIA WHATSAPP";

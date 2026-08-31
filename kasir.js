@@ -786,10 +786,15 @@ function renderPendingOrders() {
         <span style="color:#2e7d32; font-size:11px; background:#e8f5e9; padding:2px 8px; border-radius:4px;">${order.jenisPembayaran}</span>
       </div>
       
-      <!-- PERUBAHAN: Tombol kini menarik data ke kasir, bukan langsung print -->
-      <button onclick="loadCatalogOrderToCart(${order.rowNum})" class="btn-confirm-pay" style="padding:10px; font-size:13px; background:#1976d2; box-shadow: 0 3px 6px rgba(25, 118, 210, 0.3);">
-        📥 TARIK KE KASIR (EDIT/BAYAR)
-      </button>
+      <!-- PERUBAHAN: Sekarang Ada 2 Tombol Bersebelahan (Flex) -->
+      <div style="display:flex; gap:8px;">
+        <button onclick="processDirectPrint(${order.rowNum})" class="btn-confirm-pay" style="flex:1; padding:10px; font-size:12px; background:#2e7d32; box-shadow: 0 3px 6px rgba(46, 125, 50, 0.3);">
+          🖨️ LANGSUNG CETAK
+        </button>
+        <button onclick="loadCatalogOrderToCart(${order.rowNum})" class="btn-confirm-pay" style="flex:1; padding:10px; font-size:12px; background:#1976d2; box-shadow: 0 3px 6px rgba(25, 118, 210, 0.3);">
+          📥 EDIT / ONGKIR
+        </button>
+      </div>
     </div>
   `).join('');
 }

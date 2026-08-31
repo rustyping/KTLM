@@ -520,7 +520,7 @@ async function processPayment() {
   const now = new Date();
   const waktuTx = now.toLocaleString('id-ID');
   
-  // PENTING: Gunakan invoice lama jika ini meneruskan orderan katalog, atau buat baru jika walk-in
+  // Gunakan invoice lama jika ini meneruskan orderan katalog, atau buat baru jika walk-in
   const invoiceNo = activeCatalogOrder ? activeCatalogOrder.noInvoice : "INV-" + now.getFullYear() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "-" + Math.floor(1000 + Math.random() * 9000);
   
   const selectedCustomer = document.getElementById("customerSelect")?.value || "Umum";
@@ -565,7 +565,7 @@ async function processPayment() {
   };
 
   try {
-    // 1. Simpan Transaksi Penjualan ke Sheet
+    // 1. Simpan Transaksi Penjualan ke Sheet (Sebagai Baris Baru yang Valid)
     await fetch(API_URL, {
       method: "POST",
       mode: "no-cors",
@@ -573,13 +573,17 @@ async function processPayment() {
       body: JSON.stringify(payload)
     });
 
-    // 2. JIKA ini pesanan Katalog, kirim perintah tambahan untuk mengubah status "PENDING" menjadi "SELESAI" di database lama
+    // 2. PERBAIKAN: Ubah status baris pesanan lama menjadi BATAL agar tidak dihitung ganda
     if (activeCatalogOrder && activeCatalogOrder.rowNum) {
       await fetch(API_URL, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "updateStatus", rowNum: activeCatalogOrder.rowNum })
+        body: JSON.stringify({ 
+            action: "updateStatus", 
+            rowNum: activeCatalogOrder.rowNum,
+            status: "BATAL (DIEDIT)" // <-- Mematikan data ganda
+        })
       });
     }
 

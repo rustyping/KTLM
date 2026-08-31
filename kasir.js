@@ -546,7 +546,6 @@ async function processPayment() {
   if (noteValue) detailText += ` | Catatan Pesanan: ${noteValue}`;
 
   const payload = {
-    isCatalog: (activeCatalogOrder != null), // Tanda kalau ini berasal dari pesanan online
     noInvoice: invoiceNo,
     waktu: waktuTx,
     customerName: selectedCustomer,
@@ -557,7 +556,7 @@ async function processPayment() {
     uangDiterima: totalBelanja,
     kembalian: 0,
     kasir: "Kasir",
-    sumber: "Kasir",
+    sumber: activeCatalogOrder ? "Katalog Online (Diedit Kasir)" : "Kasir",
     status: "SELESAI",
     cartItems: JSON.parse(JSON.stringify(cart)), 
     note: noteValue,
@@ -565,25 +564,24 @@ async function processPayment() {
   };
 
   try {
-    // 1. Simpan Transaksi Penjualan ke Sheet (Sebagai Baris Baru yang Valid)
-    await fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    // 2. PERBAIKAN: Ubah status baris pesanan lama menjadi BATAL agar tidak dihitung ganda
     if (activeCatalogOrder && activeCatalogOrder.rowNum) {
+      // SISTEM TIMPA: Jika ini pesanan katalog, perintahkan Google Sheet untuk menimpa baris yang sudah ada
+      payload.action = "updateFullOrder";
+      payload.rowNum = activeCatalogOrder.rowNum;
+      
       await fetch(API_URL, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ 
-            action: "updateStatus", 
-            rowNum: activeCatalogOrder.rowNum,
-            status: "BATAL (DIEDIT)" // <-- Mematikan data ganda
-        })
+        body: JSON.stringify(payload)
+      });
+    } else {
+      // SISTEM NORMAL: Jika ini pelanggan yang beli langsung di kasir (tambah baris baru)
+      await fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
       });
     }
 
@@ -594,14 +592,14 @@ async function processPayment() {
     
     // Pembersihan Sistem
     cart = [];
-    activeCatalogOrder = null; // Putuskan memori orderan online
+    activeCatalogOrder = null; 
     if (document.getElementById("orderNote")) document.getElementById("orderNote").value = "";
     if (document.getElementById("shippingCostInput")) document.getElementById("shippingCostInput").value = 0;
     
     updateCartUI();
     closeCheckoutModal();
     filterProducts(); 
-    checkPendingOrders(); // Refresh lonceng notifikasi di atas
+    checkPendingOrders(); 
   } catch (err) {
     console.error("Gagal simpan:", err);
     alert("Koneksi gagal. Cek sambungan internet.");

@@ -914,6 +914,65 @@ window.addEventListener('click', function(event) {
   }
 });
 
+// ---------------------------------------------------------
+// FUNGSI BARU: JALUR CEPAT (LANGSUNG CETAK TANPA EDIT)
+// ---------------------------------------------------------
+async function processDirectPrint(rowNum) {
+  const order = pendingOrdersArr.find(o => o.rowNum === rowNum);
+  if (!order) return;
+
+  // 1. Fitur Keamanan: Amankan keranjang kasir saat ini. 
+  // (Jika kasir sedang melayani pelanggan offline lalu tiba-tiba mencetak pesanan online, keranjangnya tidak akan hilang)
+  const backupCart = JSON.parse(JSON.stringify(cart));
+  
+  // 2. Gunakan parser untuk membongkar pesanan dan merakitnya jadi format struk
+  const globalNote = parseCatalogItemsToCart(order.detailItems);
+  const parsedItems = JSON.parse(JSON.stringify(cart));
+  
+  // 3. Kembalikan keranjang kasir seperti semula
+  cart = backupCart;
+
+  // 4. Siapkan paket data untuk diserahkan ke mesin pencetak struk
+  const payloadTx = {
+    isCatalog: true,
+    noInvoice: order.noInvoice,
+    waktu: order.waktu,
+    customerName: order.customerName,
+    jenisPembayaran: order.jenisPembayaran,
+    totalBelanja: order.totalBelanja,
+    cartItems: parsedItems,
+    note: globalNote,
+    ongkir: 0
+  };
+
+  try {
+    // 5. Ubah status baris pesanan tersebut menjadi SELESAI di Google Sheet
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "updateStatus",
+        rowNum: order.rowNum,
+        status: "SELESAI"
+      })
+    });
+
+    // 6. Simpan ke riwayat transaksi terakhir, lalu Cetak Struk!
+    saveLastTransaction(payloadTx);
+    printReceipt(payloadTx, globalNote);
+
+    alert(`Pesanan ${order.noInvoice} langsung dicetak!`);
+    
+    checkPendingOrders();
+    closePendingOrdersModal();
+  } catch (err) {
+    console.error("Gagal cetak instan:", err);
+    alert("Gagal koneksi ke Google Sheet saat mencetak.");
+  }
+}
+
+
 loadData(); 
 setInterval(checkPendingOrders, 15000); 
 checkPendingOrders();

@@ -848,8 +848,15 @@ async function checkPendingOrders() {
     const badge = document.getElementById("orderBadge");
     if (badge) {
       badge.innerText = pendingOrdersArr.length;
-      badge.style.display = pendingOrdersArr.length > 0 ? "inline-block" : "none"; // Munculkan lonceng merah jika ada
+      badge.style.display = pendingOrdersArr.length > 0 ? "inline-block" : "none";
     }
+
+    // --- TAMBAHAN BARU: Mengirim sinyal angka ke Aplikasi Android ---
+    if (window.Android && window.Android.updateAppBadge) {
+      window.Android.updateAppBadge(pendingOrdersArr.length);
+    }
+    // ----------------------------------------------------------------
+
   } catch (err) {
     console.error("Gagal cek pesanan:", err);
   }

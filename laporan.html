@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Penjualan - KTLM Kitchen</title>
+  <style>
+    :root { --primary: #1b5e20; --bg: #f8f9fa; --text: #333; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { color: var(--primary); margin: 0 0 5px 0; }
+    
+    .filter-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { font-size: 12px; font-weight: bold; color: #666; margin-bottom: 5px; }
+    .form-group input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    .btn-filter { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-filter:hover { background: #2e7d32; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .summary-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+    .summary-card h3 { margin: 0 0 10px 0; font-size: 14px; color: #6c757d; text-transform: uppercase; }
+    .summary-card .value { font-size: 24px; font-weight: 900; color: var(--primary); }
+    .value.profit { color: #1976d2; }
+    
+    .table-container { background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+    th { background: #e8f5e9; color: var(--primary); font-weight: bold; }
+    tr:hover { background-color: #f1f8e9; }
+    
+    #loadingMsg { text-align: center; padding: 30px; font-weight: bold; color: #666; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>📊 Rekap Penjualan KTLM</h1>
+    <p style="margin:0; color:#666;">Ringkasan Omset & Keuntungan</p>
+  </div>
+
+  <!-- Filter Tanggal -->
+  <div class="filter-card">
+    <div class="form-group">
+      <label>Dari Tanggal:</label>
+      <input type="date" id="startDate">
+    </div>
+    <div class="form-group">
+      <label>Sampai Tanggal:</label>
+      <input type="date" id="endDate">
+    </div>
+    <button class="btn-filter" onclick="applyFilter()">Tampilkan Data</button>
+    <button class="btn-filter" style="background:#6c757d;" onclick="resetFilter()">Bulan Ini</button>
+  </div>
+
+  <!-- Kartu Ringkasan -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3>Total Transaksi</h3>
+      <div class="value" id="sumTrx">0</div>
+    </div>
+    <div class="summary-card">
+      <h3>Total Pendapatan (Omset)</h3>
+      <div class="value" id="sumOmset">Rp0</div>
+    </div>
+    <div class="summary-card">
+      <h3>Total Modal (HPP)</h3>
+      <div class="value" style="color:#d32f2f;" id="sumHpp">Rp0</div>
+    </div>
+    <div class="summary-card">
+      <h3>Keuntungan Bersih (Laba)</h3>
+      <div class="value profit" id="sumLaba">Rp0</div>
+    </div>
+  </div>
+
+  <!-- Tabel Data -->
+  <div class="table-container">
+    <div id="loadingMsg">Memuat data dari database...</div>
+    <table id="laporanTable" style="display: none;">
+      <thead>
+        <tr>
+          <th>Tanggal & Waktu</th>
+          <th>No Invoice</th>
+          <th>Customer</th>
+          <th>Detail Pesanan</th>
+          <th>Pembayaran</th>
+          <th>Omset</th>
+        </tr>
+      </thead>
+      <tbody id="laporanBody"></tbody>
+    </table>
+  </div>
+
+  <script src="laporan.js?v=1"></script>
+</body>
+</html>

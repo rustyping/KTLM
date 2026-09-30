@@ -30,9 +30,16 @@ function formatTampilanTanggal(dateStr) {
 
 function setDefaultDates() {
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
-  document.getElementById('endDate').value = now.toISOString().split('T')[0];
+  
+  // Mengambil tahun, bulan, dan tanggal berdasarkan Waktu Lokal Indonesia (Bukan Global)
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const today = String(now.getDate()).padStart(2, '0');
+  
+  // Setel paksa ke tanggal 01 pada bulan yang sedang berjalan
+  document.getElementById('startDate').value = `${year}-${month}-01`;
+  // Setel ke hari ini
+  document.getElementById('endDate').value = `${year}-${month}-${today}`;
 }
 
 async function loadLaporan() {

@@ -1,7 +1,8 @@
-// Ganti dengan URL API Google Script
+// Ganti dengan URL API Google Script milik Mas Hendra
 const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
 
 let allData = [];
+let uniqueCustomers = []; 
 
 function formatRupiah(angka) {
   return (angka || 0).toLocaleString('id-ID');
@@ -22,7 +23,7 @@ function parseDateIndo(dateStr) {
   return isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
 
-// FITUR BARU: Memaksa Tampilan Tabel Menjadi DD/MM/YYYY
+// MEMAKSA TAMPILAN TANGGAL MENJADI DD/MM/YYYY
 function formatTampilanTanggal(dateStr) {
   let d = parseDateIndo(dateStr);
   if (d.getTime() === 0) return dateStr; 
@@ -47,12 +48,15 @@ async function loadLaporan() {
     const res = await fetch(`${API_URL}?action=getLaporan`);
     const json = await res.json();
     
-    // Peringatan jika Google Script belum di-Deploy versi baru
     if (!json.data) {
        alert("Data gagal ditarik! Pastikan Anda sudah melakukan 'Deploy > Versi Baru' di Google Apps Script.");
     }
     
     allData = json.data || [];
+    
+    // FITUR BARU: Mengumpulkan nama-nama pelanggan secara otomatis dari transaksi
+    uniqueCustomers = [...new Set(allData.map(item => item.customerName))].filter(Boolean).sort();
+    populateCustomerDropdown();
     
     document.getElementById('loadingMsg').style.display = 'none';
     document.getElementById('laporanTable').style.display = 'table';
@@ -64,9 +68,24 @@ async function loadLaporan() {
   }
 }
 
+// FITUR BARU: Memasukkan daftar nama ke dalam kotak pilihan
+function populateCustomerDropdown() {
+  const select = document.getElementById("customerFilter");
+  if (!select) return;
+  
+  let optionsHtml = `<option value="ALL">✅ Semua Pelanggan</option>`;
+  uniqueCustomers.forEach(cust => {
+    optionsHtml += `<option value="${cust}">${cust}</option>`;
+  });
+  
+  select.innerHTML = optionsHtml;
+}
+
+// MESIN PENYARING (Berdasarkan Tanggal & Pelanggan)
 function applyFilter() {
   const startInput = document.getElementById('startDate').value;
   const endInput = document.getElementById('endDate').value;
+  const customerInput = document.getElementById('customerFilter') ? document.getElementById('customerFilter').value : "ALL";
   
   let start = new Date(startInput);
   start.setHours(0, 0, 0, 0);
@@ -76,7 +95,10 @@ function applyFilter() {
 
   const filteredData = allData.filter(row => {
     let rowDate = parseDateIndo(row.waktu);
-    return rowDate >= start && rowDate <= end;
+    let matchDate = (rowDate >= start && rowDate <= end);
+    let matchCustomer = (customerInput === "ALL" || row.customerName === customerInput);
+    
+    return matchDate && matchCustomer;
   });
 
   renderTableAndSummary(filteredData);
@@ -84,6 +106,8 @@ function applyFilter() {
 
 function resetFilter() {
   setDefaultDates();
+  const select = document.getElementById("customerFilter");
+  if (select) select.value = "ALL";
   applyFilter();
 }
 
@@ -111,7 +135,7 @@ function renderTableAndSummary(data) {
   }).join('');
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Tidak ada transaksi pada tanggal tersebut.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Tidak ada transaksi yang sesuai.</td></tr>`;
   }
 
   const labaBersih = sumOmset - sumHpp;

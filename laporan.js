@@ -11,13 +11,10 @@ function formatRupiah(angka) {
 function parseDateIndo(dateStr) {
   if (!dateStr) return new Date(0);
   let str = String(dateStr).trim();
-  
   let match1 = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (match1) return new Date(match1[3], match1[2] - 1, match1[1]);
-  
   let match2 = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (match2) return new Date(match2[1], match2[2] - 1, match2[3]);
-
   let parsed = new Date(str);
   return isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
@@ -25,18 +22,15 @@ function parseDateIndo(dateStr) {
 function formatTampilanTanggal(dateStr) {
   let d = parseDateIndo(dateStr);
   if (d.getTime() === 0) return dateStr; 
-  
   let day = String(d.getDate()).padStart(2, '0');
   let month = String(d.getMonth() + 1).padStart(2, '0');
   let year = d.getFullYear();
-  
   return `${day}/${month}/${year}`;
 }
 
 function setDefaultDates() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  
   document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
   document.getElementById('endDate').value = now.toISOString().split('T')[0];
 }
@@ -46,13 +40,9 @@ async function loadLaporan() {
     const res = await fetch(`${API_URL}?action=getLaporan`);
     const json = await res.json();
     
-    if (!json.data) {
-       alert("Data gagal ditarik! Pastikan Anda sudah melakukan 'Deploy > Versi Baru' di Google Apps Script.");
-    }
+    if (!json.data) alert("Data gagal ditarik! Pastikan Deploy > Versi Baru di Apps Script.");
     
     allData = json.data || [];
-    
-    // Tarik nama pelanggan unik
     uniqueCustomers = [...new Set(allData.map(item => item.customerName))].filter(Boolean).sort();
     populateCustomerCheckboxes();
     
@@ -66,26 +56,23 @@ async function loadLaporan() {
   }
 }
 
-// FITUR BARU: Membuka/Menutup Dropdown Checkbox
 function toggleCustomerList() {
   const list = document.getElementById('customerCheckboxes');
   list.style.display = list.style.display === 'block' ? 'none' : 'block';
 }
 
-// Menutup dropdown jika user klik di luar kotak
 document.addEventListener('click', function(e) {
   const container = document.getElementById('listCustomer');
   if (container && !container.contains(e.target)) {
-    document.getElementById('customerCheckboxes').style.display = 'none';
+    const list = document.getElementById('customerCheckboxes');
+    if(list) list.style.display = 'none';
   }
 });
 
-// FITUR BARU: Membuat Checkbox Pelanggan
 function populateCustomerCheckboxes() {
   const container = document.getElementById("customerCheckboxes");
   if (!container) return;
   
-  // Tombol Centang Semua
   let html = `
     <li>
       <input type="checkbox" id="checkAllCust" checked onchange="toggleAllCust(this)"> 
@@ -104,23 +91,57 @@ function populateCustomerCheckboxes() {
   });
   
   container.innerHTML = html;
+  updateCustomerFeedback();
 }
 
-// Logika Centang Semua
 function toggleAllCust(source) {
   const checkboxes = document.querySelectorAll('.cust-checkbox');
   checkboxes.forEach(cb => cb.checked = source.checked);
+  updateCustomerFeedback();
 }
 
-// Jika salah satu dicentang/dihapus, atur status "Pilih Semua"
 function uncheckAllIfNeeded() {
   const checkAll = document.getElementById('checkAllCust');
   const checkboxes = document.querySelectorAll('.cust-checkbox');
   const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-  checkAll.checked = allChecked;
+  if(checkAll) checkAll.checked = allChecked;
+  updateCustomerFeedback();
 }
 
-// MESIN PENYARING
+// FITUR BARU: Memberikan respon teks ke Ibu saat memilih pelanggan
+function updateCustomerFeedback() {
+  const anchor = document.querySelector('#listCustomer .anchor');
+  const checkAll = document.getElementById('checkAllCust');
+  const checkedBoxes = document.querySelectorAll('.cust-checkbox:checked');
+  
+  if (!anchor) return;
+
+  if (checkAll && checkAll.checked) {
+    anchor.innerHTML = "✅ Semua Pelanggan";
+    anchor.style.color = "#1b5e20";
+  } else if (checkedBoxes.length === 0) {
+    anchor.innerHTML = "⚠️ Belum ada dipilih";
+    anchor.style.color = "#d32f2f";
+  } else if (checkedBoxes.length === 1) {
+    anchor.innerHTML = `👤 ${checkedBoxes[0].value}`;
+    anchor.style.color = "#1976d2";
+  } else {
+    anchor.innerHTML = `👥 ${checkedBoxes.length} Pelanggan Dipilih`;
+    anchor.style.color = "#1976d2";
+  }
+}
+
+// FITUR BARU: Menampilkan atau menyembunyikan kolom tabel
+function toggleTableColumns() {
+  const table = document.getElementById('laporanTable');
+  if (!table) return;
+  
+  table.classList.toggle('hide-invoice', !document.getElementById('chkInvoice').checked);
+  table.classList.toggle('hide-customer', !document.getElementById('chkCustomer').checked);
+  table.classList.toggle('hide-detail', !document.getElementById('chkDetail').checked);
+  table.classList.toggle('hide-pembayaran', !document.getElementById('chkPembayaran').checked);
+}
+
 function applyFilter() {
   const startInput = document.getElementById('startDate').value;
   const endInput = document.getElementById('endDate').value;
@@ -131,7 +152,6 @@ function applyFilter() {
   let end = new Date(endInput);
   end.setHours(23, 59, 59, 999);
 
-  // Ambil nama pelanggan yang dicentang
   const checkedBoxes = document.querySelectorAll('.cust-checkbox:checked');
   const selectedCustomers = Array.from(checkedBoxes).map(cb => cb.value);
   const isAllChecked = document.getElementById('checkAllCust') && document.getElementById('checkAllCust').checked;
@@ -139,10 +159,7 @@ function applyFilter() {
   const filteredData = allData.filter(row => {
     let rowDate = parseDateIndo(row.waktu);
     let matchDate = (rowDate >= start && rowDate <= end);
-    
-    // Cocokkan jika Pilih Semua dicentang, ATAU namanya ada dalam daftar centang
     let matchCustomer = isAllChecked || selectedCustomers.includes(row.customerName);
-    
     return matchDate && matchCustomer;
   });
 
@@ -151,14 +168,11 @@ function applyFilter() {
 
 function resetFilter() {
   setDefaultDates();
-  
-  // Centang kembali semuanya saat reset
   const checkAll = document.getElementById('checkAllCust');
   if (checkAll) {
     checkAll.checked = true;
     toggleAllCust(checkAll);
   }
-  
   applyFilter();
 }
 
@@ -176,17 +190,17 @@ function renderTableAndSummary(data) {
         <td style="white-space: nowrap; font-weight:bold; color:#1b5e20;">
           ${formatTampilanTanggal(row.waktu)}
         </td>
-        <td><strong>${row.noInvoice}</strong></td>
-        <td>${row.customerName}</td>
-        <td style="font-size:11px; max-width:250px;">${row.detailItems}</td>
-        <td>${row.jenisPembayaran}<br><small style="color:#666;">(${row.sumber})</small></td>
+        <td class="col-invoice"><strong>${row.noInvoice}</strong></td>
+        <td class="col-customer">${row.customerName}</td>
+        <td class="col-detail" style="font-size:11px; max-width:200px;">${row.detailItems}</td>
+        <td class="col-pembayaran">${row.jenisPembayaran}<br><small style="color:#666;">(${row.sumber})</small></td>
         <td style="font-weight:bold; color:#1b5e20;">Rp${formatRupiah(row.totalBelanja)}</td>
       </tr>
     `;
   }).join('');
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Tidak ada transaksi yang sesuai kriteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Tidak ada transaksi yang sesuai.</td></tr>`;
   }
 
   const labaBersih = sumOmset - sumHpp;
@@ -195,6 +209,9 @@ function renderTableAndSummary(data) {
   document.getElementById('sumOmset').innerText = `Rp${formatRupiah(sumOmset)}`;
   document.getElementById('sumHpp').innerText = `Rp${formatRupiah(sumHpp)}`;
   document.getElementById('sumLaba').innerText = `Rp${formatRupiah(labaBersih)}`;
+  
+  // Pastikan kolom tetap tersembunyi/tampil sesuai setelan HP Ibu
+  toggleTableColumns(); 
 }
 
 setDefaultDates();

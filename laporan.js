@@ -42,6 +42,32 @@ function setDefaultDates() {
   document.getElementById('endDate').value = `${year}-${month}-${today}`;
 }
 
+
+// FUNGSI BARU: Setel otomatis ke bulan lalu
+function setLastMonth() {
+  const now = new Date();
+  
+  // Mengambil tanggal 1 di bulan sebelumnya
+  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  // Mengambil tanggal terakhir di bulan sebelumnya (dengan mengeset hari = 0 di bulan ini)
+  const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+  
+  const startYear = firstDayLastMonth.getFullYear();
+  const startMonth = String(firstDayLastMonth.getMonth() + 1).padStart(2, '0');
+  const startDay = String(firstDayLastMonth.getDate()).padStart(2, '0');
+  
+  const endYear = lastDayLastMonth.getFullYear();
+  const endMonth = String(lastDayLastMonth.getMonth() + 1).padStart(2, '0');
+  const endDay = String(lastDayLastMonth.getDate()).padStart(2, '0');
+  
+  document.getElementById('startDate').value = `${startYear}-${startMonth}-${startDay}`;
+  document.getElementById('endDate').value = `${endYear}-${endMonth}-${endDay}`;
+  
+  // Langsung terapkan filter agar datanya otomatis berubah
+  applyFilter();
+}
+
+
 async function loadLaporan() {
   try {
     const res = await fetch(`${API_URL}?action=getLaporan`);

@@ -1,4 +1,4 @@
-// Ganti dengan URL API Google Script milik Mas Hendra
+// Ganti dengan URL API Google Script
 const API_URL = "https://script.google.com/macros/s/AKfycbzw8qMzc73BfdUP1sQaM8XUYMwTUVCjXWL1ZuhjVUE1w4U9H3unuH3dWqTZZkzCGmDbvA/exec";
 
 let allData = [];

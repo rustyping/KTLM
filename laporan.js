@@ -7,30 +7,33 @@ function formatRupiah(angka) {
   return (angka || 0).toLocaleString('id-ID');
 }
 
-// Mengubah format string tanggal "31/08/2026, 12.43.28" menjadi format Objek Date JavaScript
-// Mengubah format string tanggal apa pun menjadi format Objek Date yang akurat
+// Mesin Pintar Pembaca Segala Format Tanggal
 function parseDateIndo(dateStr) {
   if (!dateStr) return new Date(0);
   let str = String(dateStr).trim();
   
-  // Mencari pola DD/MM/YYYY (contoh: 31/08/2026 atau 31/8/2026)
   let match1 = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (match1) {
-    return new Date(match1[3], match1[2] - 1, match1[1]); // Format: Tahun, Bulan-1, Tanggal
-  }
+  if (match1) return new Date(match1[3], match1[2] - 1, match1[1]);
   
-  // Mencari pola YYYY-MM-DD (Format bawaan Google/Database)
   let match2 = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (match2) {
-     return new Date(match2[1], match2[2] - 1, match2[3]);
-  }
+  if (match2) return new Date(match2[1], match2[2] - 1, match2[3]);
 
-  // Jika bentuknya unik, biarkan sistem yang menebak
   let parsed = new Date(str);
   return isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
 
-// Setel input filter tanggal otomatis ke awal bulan dan hari ini
+// FITUR BARU: Memaksa Tampilan Tabel Menjadi DD/MM/YYYY
+function formatTampilanTanggal(dateStr) {
+  let d = parseDateIndo(dateStr);
+  if (d.getTime() === 0) return dateStr; 
+  
+  let day = String(d.getDate()).padStart(2, '0');
+  let month = String(d.getMonth() + 1).padStart(2, '0');
+  let year = d.getFullYear();
+  
+  return `${day}/${month}/${year}`;
+}
+
 function setDefaultDates() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -43,12 +46,18 @@ async function loadLaporan() {
   try {
     const res = await fetch(`${API_URL}?action=getLaporan`);
     const json = await res.json();
+    
+    // Peringatan jika Google Script belum di-Deploy versi baru
+    if (!json.data) {
+       alert("Data gagal ditarik! Pastikan Anda sudah melakukan 'Deploy > Versi Baru' di Google Apps Script.");
+    }
+    
     allData = json.data || [];
     
     document.getElementById('loadingMsg').style.display = 'none';
     document.getElementById('laporanTable').style.display = 'table';
     
-    applyFilter(); // Langsung saring data berdasarkan bulan ini
+    applyFilter(); 
   } catch (err) {
     console.error("Gagal memuat laporan:", err);
     document.getElementById('loadingMsg').innerText = "Gagal memuat data. Periksa koneksi internet.";
@@ -65,7 +74,6 @@ function applyFilter() {
   let end = new Date(endInput);
   end.setHours(23, 59, 59, 999);
 
-  // Saring data
   const filteredData = allData.filter(row => {
     let rowDate = parseDateIndo(row.waktu);
     return rowDate >= start && rowDate <= end;
@@ -90,7 +98,9 @@ function renderTableAndSummary(data) {
 
     return `
       <tr>
-        <td style="white-space: nowrap;">${row.waktu}</td>
+        <td style="white-space: nowrap; font-weight:bold; color:#1b5e20;">
+          ${formatTampilanTanggal(row.waktu)}
+        </td>
         <td><strong>${row.noInvoice}</strong></td>
         <td>${row.customerName}</td>
         <td style="font-size:11px; max-width:250px;">${row.detailItems}</td>
@@ -104,7 +114,6 @@ function renderTableAndSummary(data) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Tidak ada transaksi pada tanggal tersebut.</td></tr>`;
   }
 
-  // Hitung Keuntungan
   const labaBersih = sumOmset - sumHpp;
 
   document.getElementById('sumTrx').innerText = data.length;
@@ -113,6 +122,5 @@ function renderTableAndSummary(data) {
   document.getElementById('sumLaba').innerText = `Rp${formatRupiah(labaBersih)}`;
 }
 
-// Inisialisasi
 setDefaultDates();
 loadLaporan();

@@ -30,6 +30,17 @@
     tr:hover { background-color: #f1f8e9; }
     
     #loadingMsg { text-align: center; padding: 30px; font-weight: bold; color: #666; }
+
+    /* Desain Kotak Centang Multi-Select */
+    .dropdown-check-list { position: relative; min-width: 220px; }
+    .dropdown-check-list .anchor { cursor: pointer; display: block; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; background: #fff; font-size: 14px; position: relative; }
+    .dropdown-check-list .anchor:after { content: '▼'; position: absolute; right: 12px; top: 10px; font-size: 12px; color: #666; }
+    .dropdown-check-list ul.items { padding: 12px; display: none; position: absolute; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); width: 100%; max-height: 250px; overflow-y: auto; z-index: 100; margin: 5px 0 0 0; list-style: none; box-sizing: border-box; }
+    .dropdown-check-list ul.items li { margin-bottom: 10px; font-size: 13px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .dropdown-check-list ul.items li:last-child { margin-bottom: 0; }
+    .dropdown-check-list ul.items input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
+
+    
   </style>
 </head>
 <body>
@@ -41,6 +52,7 @@
 
   <!-- Filter Tanggal -->
 <!-- Filter Tanggal & Pelanggan -->
+<!-- Filter Tanggal & Pelanggan -->
   <div class="filter-card">
     <div class="form-group">
       <label>Dari Tanggal:</label>
@@ -50,12 +62,16 @@
       <label>Sampai Tanggal:</label>
       <input type="date" id="endDate">
     </div>
-    <!-- FITUR BARU: Filter Pelanggan -->
+    
+    <!-- FITUR BARU: Filter Pelanggan (Bisa Centang Banyak) -->
     <div class="form-group">
-      <label>Pelanggan:</label>
-      <select id="customerFilter" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; min-width: 150px;">
-        <option value="ALL">✅ Semua Pelanggan</option>
-      </select>
+      <label>Filter Pelanggan:</label>
+      <div class="dropdown-check-list" id="listCustomer">
+        <span class="anchor" onclick="toggleCustomerList()">Pilih Pelanggan...</span>
+        <ul class="items" id="customerCheckboxes">
+          <!-- Checkbox akan dimuat otomatis oleh JavaScript -->
+        </ul>
+      </div>
     </div>
     
     <button class="btn-filter" onclick="applyFilter()">Tampilkan Data</button>

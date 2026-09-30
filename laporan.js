@@ -8,15 +8,26 @@ function formatRupiah(angka) {
 }
 
 // Mengubah format string tanggal "31/08/2026, 12.43.28" menjadi format Objek Date JavaScript
+// Mengubah format string tanggal apa pun menjadi format Objek Date yang akurat
 function parseDateIndo(dateStr) {
   if (!dateStr) return new Date(0);
-  let parts = dateStr.split(',');
-  let datePart = parts[0].trim().split('/');
-  if (datePart.length === 3) {
-    // Format: DD/MM/YYYY
-    return new Date(datePart[2], datePart[1] - 1, datePart[0]);
+  let str = String(dateStr).trim();
+  
+  // Mencari pola DD/MM/YYYY (contoh: 31/08/2026 atau 31/8/2026)
+  let match1 = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (match1) {
+    return new Date(match1[3], match1[2] - 1, match1[1]); // Format: Tahun, Bulan-1, Tanggal
   }
-  return new Date(dateStr); 
+  
+  // Mencari pola YYYY-MM-DD (Format bawaan Google/Database)
+  let match2 = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (match2) {
+     return new Date(match2[1], match2[2] - 1, match2[3]);
+  }
+
+  // Jika bentuknya unik, biarkan sistem yang menebak
+  let parsed = new Date(str);
+  return isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
 
 // Setel input filter tanggal otomatis ke awal bulan dan hari ini

@@ -67,6 +67,12 @@ function setLastMonth() {
   applyFilter();
 }
 
+// FUNGSI BARU: Setel otomatis ke bulan ini TANPA mereset pelanggan
+function setThisMonth() {
+  setDefaultDates();
+  applyFilter();
+}
+
 
 async function loadLaporan() {
   try {

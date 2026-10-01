@@ -119,13 +119,15 @@
     </div>
   </div>
 
-  <!-- Pengaturan Tampilan Kolom (Cocok untuk HP) -->
+<!-- Pengaturan Tampilan Kolom (Cocok untuk HP) -->
   <div class="toggle-kolom">
     <strong style="color:#666; margin-right:5px;">Tampilkan Kolom:</strong>
-    <label><input type="checkbox" id="chkInvoice" checked onchange="toggleTableColumns()"> No Invoice</label>
+    <label><input type="checkbox" id="chkInvoice" onchange="toggleTableColumns()"> No Invoice</label>
+    
     <label><input type="checkbox" id="chkCustomer" checked onchange="toggleTableColumns()"> Customer</label>
     <label><input type="checkbox" id="chkDetail" checked onchange="toggleTableColumns()"> Detail Pesanan</label>
-    <label><input type="checkbox" id="chkPembayaran" checked onchange="toggleTableColumns()"> Pembayaran</label>
+
+    <label><input type="checkbox" id="chkPembayaran" onchange="toggleTableColumns()"> Pembayaran</label>
   </div>
 
   <!-- Tabel Data -->
